@@ -1,4 +1,4 @@
-# Python virtual environments (you have one in backend/ and frontend/)
+# Python virtual environments 
 backend/venv/
 frontend/venv/
 
@@ -7,7 +7,7 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Environment variables / secrets (none yet, but good practice)
+# Environment variables / secrets 
 .env
 *.env
 
