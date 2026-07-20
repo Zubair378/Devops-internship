@@ -20,12 +20,12 @@ Each service is fully independent — built, run, and verified separately using 
 devops-week1/
 ├── backend/
 │   ├── app.py
-│   ├── Dockerfile
+│   ├── dockerfile
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── app.py
-│   ├── Dockerfile
+│   ├── dockerfile
 │   └── requirements.txt
 │
 └── README.md
