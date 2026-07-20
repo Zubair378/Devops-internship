@@ -1,0 +1,20 @@
+# Python virtual environments (you have one in backend/ and frontend/)
+backend/venv/
+frontend/venv/
+
+# Python cache/compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables / secrets (none yet, but good practice)
+.env
+*.env
+
+# OS-specific junk files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE folders
+.vscode/
+.idea/
