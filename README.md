@@ -337,6 +337,33 @@ chmod +x recreate-cluster.sh
 
 <img width="1920" height="643" alt="image" src="https://github.com/user-attachments/assets/64411084-695e-4dda-bde3-368ee0d523c7" />
 
+
+Issues Faced & Troubleshooting
+
+Several real issues came up during this task. Documenting them here since diagnosing and resolving them was part of the actual work.
+
+1. WSL2 memory too low for minikube's default request
+
+Issue: minikube start --dry-run warned that the default memory request (3072MiB) didn't leave room for system overhead, on a host machine with only 8GB total RAM. Fix: Adjusted WSL2's own memory allocation via .wslconfig (memory=4GB), and explicitly set a smaller, more conservative memory = "2200mb" in the Terraform config instead of relying on the provider's default.
+
+2. .wslconfig changes not applying immediately
+
+Issue: After editing .wslconfig, free -h inside Ubuntu still showed the old memory limit. Fix: A plain wsl command only re-enters an already-running instance — it does not reload config. wsl --shutdown (from PowerShell, not from inside Ubuntu) is required to fully stop WSL2 before the new .wslconfig settings take effect on the next launch.
+
+3. First terraform apply appeared to freeze
+
+Issue: During cluster creation, Terraform's "Still creating..." timer appeared to stall (and briefly showed corrupted/negative timestamps due to a terminal rendering glitch). Fix: Confirmed real progress was happening by checking docker ps and docker stats in a separate terminal — the container was actively being created and using CPU. The apply eventually completed successfully after ~12 minutes, slower than usual due to the host machine's limited resources.
+
+4. kubectl cluster-info failed with "connection refused" after a machine restart
+
+Issue: After restarting the computer, Docker Desktop (and the minikube container) stopped. On restart, the container was reassigned a new local port, but kubectl was still configured to use the old, stale port. Fix: Ran minikube update-context -p devops-week2 to refresh the kubeconfig with the container's current address.
+
+5. Orphaned minikube profile created accidentally
+
+Issue: Running minikube stop without specifying -p devops-week2 caused minikube to default to looking for (and starting to create) a separate cluster literally named minikube — unrelated to the Terraform-managed cluster. This was caught and cancelled before it fully completed, but left behind an incomplete, broken profile. Fix: Removed the stray profile with minikube delete -p minikube, then explicitly restarted the correct cluster with minikube start -p devops-week2. This experience directly motivated hardening recreate-cluster.sh to also clean up orphaned profiles, containers, and dead kubeconfig contexts before running Terraform — since Terraform's own state has no visibility into resources created or broken outside of it.
+
+Key takeaway: local Kubernetes tooling (minikube) can drift out of sync with Terraform's state, especially across restarts or manual command usage. Always target the specific cluster profile explicitly (-p devops-week2), and treat terraform destroy/apply as necessary but not always sufficient for a truly clean reset — hence the additional cleanup steps in the recreate script.
+
 ## Week 2 Outcome
 
 * Wrote Terraform configuration to provision a local Kubernetes cluster using the minikube provider.
