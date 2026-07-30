@@ -198,6 +198,9 @@ devops-week2/
 * kubectl
 * Docker (used as the minikube driver)
 
+<img width="1550" height="113" alt="image" src="https://github.com/user-attachments/assets/90e29348-3422-4527-a7da-d8da804fedba" />
+
+
 ## Terraform Setup
 
 ### Provider and Resource Configuration (`main.tf`)
