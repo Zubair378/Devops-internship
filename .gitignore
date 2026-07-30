@@ -18,3 +18,12 @@ Thumbs.db
 # Editor/IDE folders
 .vscode/
 .idea/
+
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+debug.log
