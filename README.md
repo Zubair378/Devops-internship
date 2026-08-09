@@ -422,6 +422,9 @@ data:
   API_KEY: ZGVtby1zZWNyZXQta2V5LTEyMw==
 ```
 
+<img width="1920" height="1080" alt="Screenshot (1213)" src="https://github.com/user-attachments/assets/021483d7-39ec-49ec-8d1b-dd3c8bb98bdd" />
+
+
 ### Backend Deployment (`backend-deployment.yaml`)
 Runs 2 replicas of the `backend:1.0` image built in Week 1, with the ConfigMap/Secret injected as environment variables, resource limits, and liveness/readiness probes against the `/health` endpoint built in Week 1.
 
@@ -565,6 +568,10 @@ This proves communication happens via the **Service name**, not a pod's individu
 | `readinessProbe` | `GET /health` every 5s | If this fails, the pod is temporarily removed from the Service's routing until it passes again, without being restarted |
 
 Both probes reuse the `/health` endpoint built in Week 1 — the same endpoint that was manually verified with `curl` in Week 1 is now used by Kubernetes to continuously and automatically verify container health.
+
+
+<img width="1920" height="1080" alt="Screenshot (1214)" src="https://github.com/user-attachments/assets/b5f0a8c7-0d7d-477f-9da8-c5a4a1d7fe11" />
+
 
 ## Issues Faced & Troubleshooting
 
