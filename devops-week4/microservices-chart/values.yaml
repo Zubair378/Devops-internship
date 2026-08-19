@@ -1,0 +1,49 @@
+config:
+  appEnv: "production"
+  logLevel: "info"
+
+secret:
+  apiKey: "demo-secret-key-123"
+
+backend:
+  image:
+    repository: backend
+    tag: "1.0"
+    pullPolicy: Never
+  replicaCount: 2
+  port: 5000
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+  probe:
+    path: /health
+    initialDelaySeconds: 5
+    livenessPeriodSeconds: 10
+    readinessPeriodSeconds: 5
+
+frontend:
+  image:
+    repository: frontend
+    tag: "1.0"
+    pullPolicy: Never
+  replicaCount: 2
+  port: 5001
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+  probe:
+    path: /health
+    initialDelaySeconds: 5
+    livenessPeriodSeconds: 10
+    readinessPeriodSeconds: 5
+
+service:
+  type: ClusterIP
