@@ -592,3 +592,95 @@ Both probes reuse the `/health` endpoint built in Week 1 — the same endpoint t
 * Verified internal service-to-service communication using `kubectl exec` and an HTTP request from inside one pod to another, addressed by Service name.
 * Configured CPU/memory resource requests and limits on both Deployments.
 * Added liveness and readiness probes using the `/health` endpoint built in Week 1.
+
+
+
+# DevOps Internship - Week 4
+
+
+Project Overview
+This week converts Week 3's raw Kubernetes manifests (Deployments, Services, ConfigMap, Secret) into a single reusable Helm chart. Instead of applying six separate YAML files by hand, the entire application is now installed, configured, and upgraded through one Helm release.
+
+Project Structure
+devops-week4/
+├── microservices-chart/
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+│       ├── configmap.yaml
+│       ├── secret.yaml
+│       ├── backend-deployment.yaml
+│       ├── backend-service.yaml
+│       ├── frontend-deployment.yaml
+│       └── frontend-service.yaml
+└── upgrade.sh
+
+Technologies Used
+Helm v4.2.3
+Kubernetes manifests from Week 3, converted into Helm templates
+minikube cluster from Week 2
+
+Why Helm
+Week 3 required applying 6 separate YAML files in a specific order, and any config change meant editing raw YAML directly. Helm packages all of that into one chart with a single values.yaml controlling every configurable setting, so the whole app is installed and upgraded as one versioned release instead of six independent objects.
+
+Chart Structure
+Chart.yaml — chart metadata (name, version, appVersion).
+values.yaml — every configurable value: image repo/tag/pullPolicy, replica counts, ports, resource requests/limits, probe settings, ConfigMap values, Secret value, and Service type.
+templates/ — the Week 3 manifests, rewritten with Go template placeholders ({{ .Values.xxx }}) instead of hardcoded values.
+
+Setup Instructions
+
+1. Ensure the Week 2 cluster is running and Week 1 images are loaded
+minikube start -p devops-week2
+minikube image load backend:1.0 -p devops-week2
+minikube image load frontend:1.0 -p devops-week2
+
+2. Install the chart
+cd devops-week4
+helm install microservices ./microservices-chart
+
+3. Verify the release
+helm list
+kubectl get pods
+kubectl get deployments
+kubectl get services
+
+
+<img width="1589" height="1036" alt="image" src="https://github.com/user-attachments/assets/d086e225-1095-4dfe-965e-04a27948259c" />
+
+
+Upgrading the Deployment
+The included upgrade.sh script demonstrates helm upgrade end-to-end: it bumps backend.replicaCount from 2 to 3 and switches config.logLevel to debug, then waits for both rollouts to finish and prints the release status and pod list to verify the change.
+
+chmod +x upgrade.sh
+./upgrade.sh
+
+Verified: helm history microservices shows REVISION 2 (Upgrade complete), and kubectl get pods confirmed 3 backend pods running after the upgrade.
+
+Rolling Back
+helm history microservices
+helm rollback microservices 1
+
+Uninstalling
+helm uninstall microservices
+
+Issues Faced & Troubleshooting
+1. Docker Desktop not running
+Issue: minikube start failed with PROVIDER_DOCKER_VERSION_EXIT_1 since the cluster's driver is Docker and Docker Desktop wasn't running in the background.
+Fix: Started Docker Desktop on Windows and confirmed WSL2 integration was enabled, then retried minikube start successfully.
+
+2. Helm install failed: resources already existed
+Issue: helm install failed with "exists and cannot be imported into the current release" because Week 3's raw kubectl apply resources (backend-deployment, frontend-deployment, backend-service, frontend-service, app-config, app-secret) were still present in the cluster from before, and Helm refuses to adopt resources it didn't create.
+Fix: Deleted the old Week 3 resources with kubectl delete, confirmed the cluster was clean with kubectl get all, then reran helm install successfully.
+
+
+<img width="1911" height="1074" alt="image" src="https://github.com/user-attachments/assets/868c1d34-1799-4f1d-9668-6a6b98d32bce" />
+
+
+Week 4 Outcome
+Converted all Week 3 raw manifests into Helm chart templates.
+Defined values.yaml with configurable image tags, replica counts, resource limits, probe settings, and app config.
+Installed both microservices as a single Helm release (helm install), verified 4/4 pods Running.
+Wrote and ran upgrade.sh, confirmed via helm history (REVISION 2) and kubectl get pods (3/3 backend replicas).
+Verified rollback capability is available via helm rollback.
+Documented full chart usage and troubleshooting in this README section.
