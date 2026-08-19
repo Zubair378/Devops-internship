@@ -629,6 +629,9 @@ Week 3 required applying 6 separate YAML files in a specific order, and any conf
 - `values.yaml` — every configurable value: image repo/tag/pullPolicy, replica counts, ports, resource requests/limits, probe settings, ConfigMap values, Secret value, and Service type
 - `templates/` — the Week 3 manifests, rewritten with Go template placeholders (`{{ .Values.xxx }}`) instead of hardcoded values
 
+  <img width="1920" height="844" alt="image" src="https://github.com/user-attachments/assets/8294fe90-d91d-4aef-87a0-1151b4cb1d98" />
+
+
 ### Setup Instructions
 
 **1. Ensure the Week 2 cluster is running and Week 1 images are loaded**
@@ -643,6 +646,9 @@ minikube image load frontend:1.0 -p devops-week2
 cd devops-week4
 helm install microservices ./microservices-chart
 ```
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/9cf61897-65fa-44a8-83af-ab4f134793e9" />
+
 
 **3. Verify the release**
 ```bash
@@ -690,4 +696,7 @@ Fix: Deleted the old Week 3 resources with `kubectl delete`, confirmed the clust
 - Wrote and ran `upgrade.sh`, confirmed via `helm history` (REVISION 2) and `kubectl get pods` (3/3 backend replicas).
 - Verified rollback capability is available via `helm rollback`.
 - Documented full chart usage and troubleshooting in this README section.
+
+  <img width="1920" height="816" alt="image" src="https://github.com/user-attachments/assets/eb5b6478-16f7-409a-b406-b7431e7a6cc8" />
+
 
