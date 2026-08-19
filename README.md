@@ -1,4 +1,3 @@
-
 # DevOps Internship - Week 1
 
 ## Project Overview
@@ -201,7 +200,6 @@ devops-week2/
 
 <img width="1550" height="113" alt="image" src="https://github.com/user-attachments/assets/90e29348-3422-4527-a7da-d8da804fedba" />
 
-
 ## Terraform Setup
 
 ### Provider and Resource Configuration (`main.tf`)
@@ -341,32 +339,31 @@ chmod +x recreate-cluster.sh
 
 <img width="1920" height="643" alt="image" src="https://github.com/user-attachments/assets/64411084-695e-4dda-bde3-368ee0d523c7" />
 
-
-Issues Faced & Troubleshooting
+## Issues Faced & Troubleshooting
 
 Several real issues came up during this task. Documenting them here since diagnosing and resolving them was part of the actual work.
 
-1. WSL2 memory too low for minikube's default request
+### 1. WSL2 memory too low for minikube's default request
+**Issue:** `minikube start --dry-run` warned that the default memory request (3072MiB) didn't leave room for system overhead, on a host machine with only 8GB total RAM.
+**Fix:** Adjusted WSL2's own memory allocation via `.wslconfig` (`memory=4GB`), and explicitly set a smaller, more conservative `memory = "2200mb"` in the Terraform config instead of relying on the provider's default.
 
-Issue: minikube start --dry-run warned that the default memory request (3072MiB) didn't leave room for system overhead, on a host machine with only 8GB total RAM. Fix: Adjusted WSL2's own memory allocation via .wslconfig (memory=4GB), and explicitly set a smaller, more conservative memory = "2200mb" in the Terraform config instead of relying on the provider's default.
+### 2. `.wslconfig` changes not applying immediately
+**Issue:** After editing `.wslconfig`, `free -h` inside Ubuntu still showed the old memory limit.
+**Fix:** A plain `wsl` command only re-enters an already-running instance — it does not reload config. `wsl --shutdown` (from PowerShell, not from inside Ubuntu) is required to fully stop WSL2 before the new `.wslconfig` settings take effect on the next launch.
 
-2. .wslconfig changes not applying immediately
+### 3. First `terraform apply` appeared to freeze
+**Issue:** During cluster creation, Terraform's "Still creating..." timer appeared to stall (and briefly showed corrupted/negative timestamps due to a terminal rendering glitch).
+**Fix:** Confirmed real progress was happening by checking `docker ps` and `docker stats` in a separate terminal — the container was actively being created and using CPU. The apply eventually completed successfully after ~12 minutes, slower than usual due to the host machine's limited resources.
 
-Issue: After editing .wslconfig, free -h inside Ubuntu still showed the old memory limit. Fix: A plain wsl command only re-enters an already-running instance — it does not reload config. wsl --shutdown (from PowerShell, not from inside Ubuntu) is required to fully stop WSL2 before the new .wslconfig settings take effect on the next launch.
+### 4. `kubectl cluster-info` failed with "connection refused" after a machine restart
+**Issue:** After restarting the computer, Docker Desktop (and the minikube container) stopped. On restart, the container was reassigned a new local port, but `kubectl` was still configured to use the old, stale port.
+**Fix:** Ran `minikube update-context -p devops-week2` to refresh the kubeconfig with the container's current address.
 
-3. First terraform apply appeared to freeze
+### 5. Orphaned minikube profile created accidentally
+**Issue:** Running `minikube stop` without specifying `-p devops-week2` caused minikube to default to looking for (and starting to create) a separate cluster literally named `minikube` — unrelated to the Terraform-managed cluster. This was caught and cancelled before it fully completed, but left behind an incomplete, broken profile.
+**Fix:** Removed the stray profile with `minikube delete -p minikube`, then explicitly restarted the correct cluster with `minikube start -p devops-week2`. This experience directly motivated hardening `recreate-cluster.sh` to also clean up orphaned profiles, containers, and dead kubeconfig contexts before running Terraform — since Terraform's own state has no visibility into resources created or broken outside of it.
 
-Issue: During cluster creation, Terraform's "Still creating..." timer appeared to stall (and briefly showed corrupted/negative timestamps due to a terminal rendering glitch). Fix: Confirmed real progress was happening by checking docker ps and docker stats in a separate terminal — the container was actively being created and using CPU. The apply eventually completed successfully after ~12 minutes, slower than usual due to the host machine's limited resources.
-
-4. kubectl cluster-info failed with "connection refused" after a machine restart
-
-Issue: After restarting the computer, Docker Desktop (and the minikube container) stopped. On restart, the container was reassigned a new local port, but kubectl was still configured to use the old, stale port. Fix: Ran minikube update-context -p devops-week2 to refresh the kubeconfig with the container's current address.
-
-5. Orphaned minikube profile created accidentally
-
-Issue: Running minikube stop without specifying -p devops-week2 caused minikube to default to looking for (and starting to create) a separate cluster literally named minikube — unrelated to the Terraform-managed cluster. This was caught and cancelled before it fully completed, but left behind an incomplete, broken profile. Fix: Removed the stray profile with minikube delete -p minikube, then explicitly restarted the correct cluster with minikube start -p devops-week2. This experience directly motivated hardening recreate-cluster.sh to also clean up orphaned profiles, containers, and dead kubeconfig contexts before running Terraform — since Terraform's own state has no visibility into resources created or broken outside of it.
-
-Key takeaway: local Kubernetes tooling (minikube) can drift out of sync with Terraform's state, especially across restarts or manual command usage. Always target the specific cluster profile explicitly (-p devops-week2), and treat terraform destroy/apply as necessary but not always sufficient for a truly clean reset — hence the additional cleanup steps in the recreate script.
+**Key takeaway:** local Kubernetes tooling (minikube) can drift out of sync with Terraform's state, especially across restarts or manual command usage. Always target the specific cluster profile explicitly (`-p devops-week2`), and treat `terraform destroy`/`apply` as necessary but not always sufficient for a truly clean reset — hence the additional cleanup steps in the recreate script.
 
 ## Week 2 Outcome
 
@@ -376,82 +373,222 @@ Key takeaway: local Kubernetes tooling (minikube) can drift out of sync with Ter
 * Confirmed `kubectl` context was automatically configured and connected to the new cluster.
 * Diagnosed and resolved a real orphaned-profile/state-drift issue encountered during development.
 * Wrote and tested an idempotent destroy/recreate script for quickly resetting the cluster during testing.
-DevOps Internship - Week 4
-Project Overview
-This week converts Week 3's raw Kubernetes manifests (Deployments, Services, ConfigMap, Secret) into a single reusable Helm chart. Instead of applying six separate YAML files by hand, the entire application is now installed, configured, and upgraded through one Helm release.
 
-Project Structure
-devops-week4/
-├── microservices-chart/
-│   ├── Chart.yaml
-│   ├── values.yaml
-│   └── templates/
-│       ├── configmap.yaml
-│       ├── secret.yaml
-│       ├── backend-deployment.yaml
-│       ├── backend-service.yaml
-│       ├── frontend-deployment.yaml
-│       └── frontend-service.yaml
-└── upgrade.sh
+---
 
-Technologies Used
-Helm v4.2.3
-Kubernetes manifests from Week 3, converted into Helm templates
-minikube cluster from Week 2
+# DevOps Internship - Week 3
 
-Why Helm
-Week 3 required applying 6 separate YAML files in a specific order, and any config change meant editing raw YAML directly. Helm packages all of that into one chart with a single values.yaml controlling every configurable setting, so the whole app is installed and upgraded as one versioned release instead of six independent objects.
+## Project Overview
 
-Chart Structure
-Chart.yaml — chart metadata (name, version, appVersion).
-values.yaml — every configurable value: image repo/tag/pullPolicy, replica counts, ports, resource requests/limits, probe settings, ConfigMap values, Secret value, and Service type.
-templates/ — the Week 3 manifests, rewritten with Go template placeholders ({{ .Values.xxx }}) instead of hardcoded values.
+This week takes the Docker images built in Week 1 and actually runs them inside the Kubernetes cluster provisioned in Week 2, using raw Kubernetes YAML manifests — Deployments, Services, a ConfigMap, and a Secret. This is the point where all three weeks connect: Week 1's images finally run inside Week 2's cluster, wired together the way a real Kubernetes-hosted application would be.
 
-Setup Instructions
+## Project Structure
 
-1. Ensure the Week 2 cluster is running and Week 1 images are loaded
+```
+devops-week3/
+├── configmap.yaml
+├── secret.yaml
+├── backend-deployment.yaml
+├── backend-service.yaml
+├── frontend-deployment.yaml
+└── frontend-service.yaml
+```
+
+## Manifests
+
+### ConfigMap (`configmap.yaml`)
+Stores non-sensitive configuration values, injected into both containers as environment variables.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+```
+
+### Secret (`secret.yaml`)
+Stores a placeholder sensitive value, demonstrating how credentials would be injected without hardcoding them into the image. Data is base64-encoded (a storage format requirement, not encryption).
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+type: Opaque
+data:
+  API_KEY: ZGVtby1zZWNyZXQta2V5LTEyMw==
+```
+
+<img width="1920" height="1080" alt="Screenshot (1213)" src="https://github.com/user-attachments/assets/021483d7-39ec-49ec-8d1b-dd3c8bb98bdd" />
+
+
+### Backend Deployment (`backend-deployment.yaml`)
+Runs 2 replicas of the `backend:1.0` image built in Week 1, with the ConfigMap/Secret injected as environment variables, resource limits, and liveness/readiness probes against the `/health` endpoint built in Week 1.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: backend:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+### Backend Service (`backend-service.yaml`)
+Gives the backend pods a stable, permanent internal address (`backend-service`), so other pods never need to depend on a pod's individual, changeable IP.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP
+```
+
+### Frontend Deployment and Service (`frontend-deployment.yaml`, `frontend-service.yaml`)
+Structurally identical to backend's, targeting the `frontend:1.0` image and port `5001`.
+
+## Setup Instructions
+
+### 1. Ensure the Week 2 cluster is running
+```
 minikube start -p devops-week2
+```
+
+### 2. Load local Docker images into minikube
+
+Since the Deployments use `imagePullPolicy: Never`, the images must exist inside minikube's own Docker environment, not just the host machine's:
+
+```
 minikube image load backend:1.0 -p devops-week2
 minikube image load frontend:1.0 -p devops-week2
+```
 
-2. Install the chart
-cd devops-week4
-helm install microservices ./microservices-chart
+### 3. Apply the manifests, in order
 
-3. Verify the release
-helm list
+ConfigMap and Secret are applied first, since the Deployments reference them:
+
+```
+kubectl apply -f configmap.yaml
+kubectl apply -f secret.yaml
+kubectl apply -f backend-deployment.yaml
+kubectl apply -f backend-service.yaml
+kubectl apply -f frontend-deployment.yaml
+kubectl apply -f frontend-service.yaml
+```
+
+## Verification
+
+### Check pod status
+```
 kubectl get pods
+```
+Expected: 4 pods (2 backend, 2 frontend), all `Running`, `1/1` ready, `0` restarts.
+
+### Check deployment health
+```
 kubectl get deployments
+```
+Expected: `2/2` ready for both.
+
+### Check services
+```
 kubectl get services
+```
+Expected: `backend-service` and `frontend-service` listed with `ClusterIP` addresses.
 
-Upgrading the Deployment
-The included upgrade.sh script demonstrates helm upgrade end-to-end: it bumps backend.replicaCount from 2 to 3 and switches config.logLevel to debug, then waits for both rollouts to finish and prints the release status and pod list to verify the change.
+### Verify internal service-to-service communication
 
-chmod +x upgrade.sh
-./upgrade.sh
+Since the base image (`python:3.12-slim`) does not include `curl`, verification was done using Python's built-in `urllib` from inside a pod instead:
 
-Verified: helm history microservices shows REVISION 2 (Upgrade complete), and kubectl get pods confirmed 3 backend pods running after the upgrade.
+```
+kubectl exec -it <frontend-pod-name> -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://backend-service:5000/health').read())"
+```
 
-Rolling Back
-helm history microservices
-helm rollback microservices 1
+```
+kubectl exec -it <backend-pod-name> -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://frontend-service:5001/health').read())"
+```
 
-Uninstalling
-helm uninstall microservices
+This proves communication happens via the **Service name**, not a pod's individual IP — the correct, stable pattern for Kubernetes networking, since pod IPs change whenever a pod restarts or gets replaced.
 
-Issues Faced & Troubleshooting
-1. Docker Desktop not running
-Issue: minikube start failed with PROVIDER_DOCKER_VERSION_EXIT_1 since the cluster's driver is Docker and Docker Desktop wasn't running in the background.
-Fix: Started Docker Desktop on Windows and confirmed WSL2 integration was enabled, then retried minikube start successfully.
+## Resource Limits and Probes
 
-2. Helm install failed: resources already existed
-Issue: helm install failed with "exists and cannot be imported into the current release" because Week 3's raw kubectl apply resources (backend-deployment, frontend-deployment, backend-service, frontend-service, app-config, app-secret) were still present in the cluster from before, and Helm refuses to adopt resources it didn't create.
-Fix: Deleted the old Week 3 resources with kubectl delete, confirmed the cluster was clean with kubectl get all, then reran helm install successfully.
+| Setting | Value | Purpose |
+|---|---|---|
+| `requests.cpu` / `requests.memory` | `100m` / `64Mi` | Minimum resources guaranteed to each container |
+| `limits.cpu` / `limits.memory` | `250m` / `128Mi` | Hard ceiling, keeping any single container from consuming all node resources — kept deliberately small given host machine memory constraints identified in Week 2 |
+| `livenessProbe` | `GET /health` every 10s | If this fails repeatedly, Kubernetes restarts the container automatically |
+| `readinessProbe` | `GET /health` every 5s | If this fails, the pod is temporarily removed from the Service's routing until it passes again, without being restarted |
 
-Week 4 Outcome
-Converted all Week 3 raw manifests into Helm chart templates.
-Defined values.yaml with configurable image tags, replica counts, resource limits, probe settings, and app config.
-Installed both microservices as a single Helm release (helm install), verified 4/4 pods Running.
-Wrote and ran upgrade.sh, confirmed via helm history (REVISION 2) and kubectl get pods (3/3 backend replicas).
-Verified rollback capability is available via helm rollback.
-Documented full chart usage and troubleshooting in this README section.
+Both probes reuse the `/health` endpoint built in Week 1 — the same endpoint that was manually verified with `curl` in Week 1 is now used by Kubernetes to continuously and automatically verify container health.
+
+
+<img width="1920" height="1080" alt="Screenshot (1214)" src="https://github.com/user-attachments/assets/b5f0a8c7-0d7d-477f-9da8-c5a4a1d7fe11" />
+
+
+## Issues Faced & Troubleshooting
+
+### 1. `frontend:1.0` image missing when loading into minikube
+**Issue:** `minikube image load frontend:1.0 -p devops-week2` failed with "image not found," even though `backend:1.0` loaded successfully.
+**Fix:** `docker images` confirmed the `frontend:1.0` tag no longer existed locally. Rebuilt it from the original Week 1 Dockerfile (`docker build -t frontend:1.0 .`), then loaded it into minikube successfully.
+
+### 2. `curl` not available inside containers
+**Issue:** `kubectl exec ... -- curl ...` failed with `executable file not found in $PATH`.
+**Fix:** The `python:3.12-slim` base image deliberately excludes extra tools like `curl` to stay minimal. Used Python's built-in `urllib.request` module instead to make the same HTTP request from inside the pod, avoiding the need to rebuild the image just for a debugging tool.
+
+## Week 3 Outcome
+
+* Wrote raw Kubernetes manifests (Deployment, Service, ConfigMap, Secret) for both microservices.
+* Loaded Week 1's locally-built Docker images into the minikube cluster.
+* Applied all manifests successfully using `kubectl apply`.
+* Verified both Deployments reached the desired replica count (`2/2`) with all pods `Running`.
+* Verified internal service-to-service communication using `kubectl exec` and an HTTP request from inside one pod to another, addressed by Service name.
+* Configured CPU/memory resource requests and limits on both Deployments.
+* Added liveness and readiness probes using the `/health` endpoint built in Week 1.
