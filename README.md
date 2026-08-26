@@ -700,3 +700,149 @@ Fix: Deleted the old Week 3 resources with `kubectl delete`, confirmed the clust
   <img width="1920" height="816" alt="image" src="https://github.com/user-attachments/assets/eb5b6478-16f7-409a-b406-b7431e7a6cc8" />
 
 
+
+
+---
+
+## DevOps Internship - Week 5
+
+### Project Overview
+This week installs the Istio service mesh into the Week 2 cluster via Helm, enables automatic sidecar injection for the microservices namespace, and enforces strict mTLS (mutual TLS) so that only traffic passing through the mesh is accepted between the frontend and backend services. Verified by confirming that a pod deliberately excluded from the mesh cannot reach the backend.
+
+### Project Structure
+```
+devops-week5/
+└── peer-authentication.yaml
+```
+
+### Technologies Used
+- Istio (installed via Helm: `istio-base`, `istiod`)
+- Kiali + Prometheus (Istio observability addons)
+- minikube cluster from Week 2
+- Helm v4.2.3
+
+### Why a Service Mesh
+Up to Week 4, any pod inside the cluster could call `backend-service` or `frontend-service` over plain, unauthenticated HTTP — nothing prevented a compromised or unintended pod from reading or calling either service. A service mesh adds a transparent proxy ("sidecar") to every pod that intercepts all network traffic, and can enforce that only encrypted, mutually-authenticated connections between mesh members are allowed — without changing any application code.
+
+
+<img width="1920" height="1080" alt="Screenshot (1237)" src="https://github.com/user-attachments/assets/c014ad16-a699-4423-99ea-8180f6b90a13" />
+
+
+### Setup Instructions
+
+**1. Ensure the cluster has enough resources for Istio**
+
+Istio's control plane and per-pod sidecars add real CPU/memory overhead on top of the base cluster, so the cluster was restarted with a higher memory ceiling for this week:
+```bash
+minikube stop -p devops-week2
+minikube start -p devops-week2 --memory=3072mb --cpus=2
+```
+
+**2. Install Istio via Helm**
+```bash
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+kubectl create namespace istio-system
+helm install istio-base istio/base -n istio-system
+helm install istiod istio/istiod -n istio-system --wait
+```
+
+**3. Enable automatic sidecar injection for the application namespace**
+```bash
+kubectl label namespace default istio-injection=enabled
+kubectl rollout restart deployment backend-deployment
+kubectl rollout restart deployment frontend-deployment
+```
+Labels only apply to newly created pods, so existing Week 3/4 pods were restarted to pick up the sidecar. Verified with:
+```bash
+kubectl get pods
+```
+Every pod moved from `1/1` (app container only) to `2/2` (app container + injected Istio sidecar).
+
+**4. Enforce strict mTLS**
+
+`peer-authentication.yaml`:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
+```
+```bash
+kubectl apply -f peer-authentication.yaml
+```
+
+**5. Install Kiali and Prometheus (mesh visualization)**
+```bash
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/addons/prometheus.yaml
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.22/samples/addons/kiali.yaml
+kubectl port-forward svc/kiali -n istio-system 20001:20001
+```
+Kiali was viewed at `http://localhost:20001`, confirming the mesh's registered apps and services in the `default` namespace.
+
+<img width="1920" height="1080" alt="Screenshot (1243)" src="https://github.com/user-attachments/assets/2faadd95-435b-4432-9bbb-557c497c475d" />
+
+
+### Verifying mTLS Enforcement
+
+The core requirement of this task: confirm that a pod **without** the Istio sidecar cannot successfully call a backend that requires strict mTLS.
+
+```bash
+kubectl run testpod --image=curlimages/curl -n default \
+  --labels="sidecar.istio.io/inject=false" \
+  -it -- curl -v http://backend-service:5000/health
+```
+
+**Result:** the request failed with `curl` exit code **56** (`CURLE_RECV_ERROR` — connection reset by peer), confirmed via `kubectl describe pod testpod`:
+```
+State: Terminated
+Reason: Error
+Exit Code: 56
+```
+The pod itself started and pulled its image successfully three times (confirmed in the pod's Events log), and each attempt failed identically at the network call — isolating the failure specifically to the mTLS-enforced connection, not a pod startup issue.
+
+This confirms: backend's sidecar rejected the plaintext connection from a pod with no Istio-issued certificate, exactly as strict mTLS is designed to do.
+
+<!-- Add testpod failure screenshot here -->
+
+### Before / After Networking Behavior
+
+| | Before (Week 3/4) | After (Week 5) |
+|---|---|---|
+| Pod-to-pod traffic | Plain HTTP, unauthenticated | Encrypted, mutually authenticated via Istio sidecars |
+| Un-injected pod calling backend | Would succeed | Fails (`curl` exit 56 — connection reset) |
+| Enforcement point | None — any pod could call any service | `PeerAuthentication` (`mode: STRICT`) at the namespace level |
+| Verification method | `kubectl exec` + successful `urllib` request | `kubectl exec` + **expected failure** from a non-mesh pod |
+
+### Issues Faced & Troubleshooting
+
+**1. Registry connectivity warning during minikube start**
+Issue: `minikube start` reported `Failing to connect to https://registry.k8s.io/ from inside the minikube container`.
+Fix: The cluster started successfully anyway since required images were already cached locally from prior weeks. Flagged as a risk for later steps that needed to pull new images (Istio, Kiali, Prometheus).
+
+**2. Memory allocation errors when starting minikube with more resources**
+Issue: `minikube start --memory=4000mb` failed with `RSRC_OVER_ALLOC_MEM`, since the host's WSL2 memory ceiling (set in Week 2's `.wslconfig`) was only ~3916MB.
+Fix: Reduced to `--memory=3072mb`, minikube's own suggested fallback, which fit within the existing WSL2 memory limit.
+
+**3. Kiali graph failed to load**
+Issue: Kiali loaded, but the traffic graph showed `Cannot load the graph: ... dial tcp: lookup prometheus.istio-system ... no such host`.
+Fix: Kiali depends on Prometheus for traffic metrics, which had not been installed. Applying the Prometheus addon resolved this, and the graph subsequently loaded correctly.
+
+**4. `testpod` initially deleted before its failure could be inspected**
+Issue: The first verification attempt used `--rm`, which deleted the pod immediately after the command finished, making the actual failure reason unclear (plain "timed out waiting for the condition").
+Fix: Re-ran without `--rm` so the pod's terminal state could be inspected with `kubectl describe pod`, revealing the precise `curl` exit code (56) and confirming the failure was a connection reset, not a stuck/pending pod.
+
+<img width="1920" height="1080" alt="Screenshot (1239)" src="https://github.com/user-attachments/assets/53464f30-b86f-4615-a397-50ee8dc3bb5c" />
+
+
+### Week 5 Outcome
+- Installed Istio (`istio-base`, `istiod`) into the Week 2 cluster via Helm.
+- Enabled automatic sidecar injection for the `default` namespace and confirmed all application pods moved from `1/1` to `2/2`.
+- Applied a `PeerAuthentication` policy enforcing strict mTLS for all traffic in the namespace.
+- Verified enforcement by confirming a pod without the sidecar fails to reach `backend-service`, with a specific, reproducible `curl` error (exit code 56, connection reset).
+- Installed Prometheus and Kiali to visualize the mesh topology.
+- Documented before/after networking behavior and troubleshooting encountered during setup.
