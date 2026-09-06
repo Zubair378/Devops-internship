@@ -1,0 +1,21 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: test-consumer
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: test-consumer
+credentials:
+  - test-api-key-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-api-key-secret
+  namespace: default
+  labels:
+    konghq.com/credential: key-auth
+stringData:
+  key: my-secret-api-key-123
+type: Opaque
