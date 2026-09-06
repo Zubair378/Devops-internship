@@ -846,3 +846,239 @@ Fix: Re-ran without `--rm` so the pod's terminal state could be inspected with `
 - Verified enforcement by confirming a pod without the sidecar fails to reach `backend-service`, with a specific, reproducible `curl` error (exit code 56, connection reset).
 - Installed Prometheus and Kiali to visualize the mesh topology.
 - Documented before/after networking behavior and troubleshooting encountered during setup.
+
+
+
+  ---
+
+## DevOps Internship - Week 6
+
+### Project Overview
+This week installs the Kong API Gateway as the single external entry point into the cluster, routes it to the frontend microservice, and enforces two API-level controls: rate limiting (5 requests/minute) and API key authentication.
+
+### Project Structure
+```
+devops-week6/
+├── frontend-ingress.yaml
+├── rate-limit-plugin.yaml
+├── key-auth-plugin.yaml
+├── api-consumer.yaml
+├── frontend-permissive.yaml
+└── rate-limit-test.sh
+```
+
+### Technologies Used
+- Kong API Gateway (installed via Helm)
+- Kong Ingress Controller CRDs (KongPlugin, KongConsumer)
+- Istio (from Week 5) — required a `PeerAuthentication` adjustment for Kong to reach the mesh
+- minikube cluster from Weeks 2-5
+
+### Installing Kong
+```bash
+helm repo add kong https://charts.konghq.com
+helm repo update
+kubectl create namespace kong
+helm install kong kong/kong -n kong --set ingressController.installCRDs=false
+```
+
+Verified with:
+```bash
+kubectl get pods -n kong
+kubectl get svc -n kong
+```
+
+Since minikube has no real cloud load balancer, `kong-kong-proxy`'s `EXTERNAL-IP` stays `<pending>`. Local access is via port-forward:
+```bash
+kubectl port-forward -n kong svc/kong-kong-proxy 8000:80
+```
+
+### Routing to the Frontend Service
+
+`frontend-ingress.yaml`:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: default
+  annotations:
+    konghq.com/strip-path: "true"
+    konghq.com/plugins: rate-limit-5-per-minute,api-key-auth
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 5001
+```
+
+### Resolving a conflict with Week 5's strict mTLS
+
+Applying the Ingress initially produced `502 Bad Gateway`. Since Kong runs outside the Istio mesh (no sidecar), its plain HTTP requests were being rejected by frontend's sidecar, which was enforcing the namespace-wide `STRICT` mTLS policy from Week 5.
+
+Fix — relax mTLS specifically for the frontend workload, since it is the legitimate external entry point, while backend remains fully `STRICT`:
+
+`frontend-permissive.yaml`:
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: frontend-permissive
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  mtls:
+    mode: PERMISSIVE
+```
+```bash
+kubectl apply -f frontend-permissive.yaml
+```
+
+After this, `curl http://localhost:8000/health` returned `200 OK`, routed correctly through Kong → Istio sidecar → frontend.
+
+### Rate Limiting (5 requests/minute)
+
+`rate-limit-plugin.yaml`:
+```yaml
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limit-5-per-minute
+  namespace: default
+config:
+  minute: 5
+  policy: local
+plugin: rate-limiting
+```
+
+`rate-limit-test.sh`:
+```bash
+#!/bin/bash
+
+echo "Sending 7 rapid requests to test rate limiting (limit: 5/minute)..."
+echo ""
+
+for i in {1..7}; do
+  status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
+  echo "Request $i: $status"
+  if [ "$status" == "429" ]; then
+    echo "  --> Rate limit triggered as expected"
+  fi
+done
+```
+
+**Result:**
+```
+Request 1: 200
+Request 2: 200
+Request 3: 200
+Request 4: 200
+Request 5: 200
+Request 6: 429
+Request 7: 429
+```
+Requests 6 and 7 were correctly rejected once the 5/minute limit was exceeded.
+
+<img width="1920" height="1080" alt="Screenshot (1251)" src="https://github.com/user-attachments/assets/37f8a257-52a5-4d4d-89c8-a430f1a0d858" />
+
+
+### API Key Authentication
+
+`key-auth-plugin.yaml`:
+```yaml
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: api-key-auth
+  namespace: default
+plugin: key-auth
+```
+
+`api-consumer.yaml`:
+```yaml
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: test-consumer
+  namespace: default
+username: test-consumer
+credentials:
+  - test-api-key-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-api-key-secret
+  namespace: default
+  labels:
+    konghq.com/credential: key-auth
+stringData:
+  key: my-secret-api-key-123
+type: Opaque
+```
+
+**Test without a key:**
+```bash
+curl -i http://localhost:8000/health
+```
+```
+HTTP/1.1 401 Unauthorized
+{"message":"No API key found in request"}
+```
+
+**Test with the valid key:**
+```bash
+curl -i http://localhost:8000/health -H "apikey: my-secret-api-key-123"
+```
+```
+HTTP/1.1 200 OK
+X-RateLimit-Limit-Minute: 5
+RateLimit-Remaining: 4
+{"status":"good idea"}
+```
+
+Both rate limiting and API key auth headers are present simultaneously, confirming both plugins are active together on the same route.
+
+<img width="1920" height="1080" alt="Screenshot (1253)" src="https://github.com/user-attachments/assets/a45289c4-d47d-4587-b1d6-2c91d8c5f951" />
+
+
+### Issues Faced & Troubleshooting
+
+**1. `502 Bad Gateway` after applying the Ingress**
+Issue: Kong could reach the cluster but frontend's Istio sidecar rejected the plain-text request, due to Week 5's namespace-wide strict mTLS policy.
+Fix: Added a `PeerAuthentication` override in `PERMISSIVE` mode scoped only to `app: frontend`, allowing the gateway's plain HTTP traffic in while keeping backend-to-backend traffic under strict mTLS.
+
+**2. `minikube start` failed with `DRV_UNSUPPORTED_OS: driver ''`**
+Issue: After multiple stop/start cycles during the week, minikube's stored driver setting for the profile became blank.
+Fix: Explicitly specified the driver: `minikube start -p devops-week2 --driver=docker`.
+
+**3. Stale kubeconfig after cluster restart**
+Issue: `kubectl apply` failed with a connection refused error on a stale local port, the same category of issue encountered in Week 2.
+Fix: `minikube update-context -p devops-week2` to refresh the config with the container's current port mapping.
+
+**4. API key initially rejected as invalid, not missing**
+Issue: A request with the API key header returned `401 Unauthorized` (as opposed to "No API key found"), indicating Kong received the key but didn't recognize it as valid.
+Fix: The credential Secret required a `konghq.com/credential: key-auth` label for Kong's ingress controller to recognize it as a valid key-auth credential — a `kongCredType` field alone inside `stringData` was not sufficient. Recreating the Secret with the correct label resolved it.
+
+**5. Memory pressure before installing Kong**
+Issue: The cluster was already running Istio's control plane and sidecar-injected pods from Week 5, leaving very little free memory (as low as ~58Mi) to safely add Kong's own components.
+Fix: Removed the Kiali/Prometheus addons (no longer needed after Week 5's documentation was complete) and scaled backend/frontend down from 3/2 replicas to 1/1 each, freeing enough memory to install and run Kong reliably.
+
+<img width="1920" height="1080" alt="Screenshot (1252)" src="https://github.com/user-attachments/assets/8b2e8076-a166-45d6-ae57-aef25ae7bfda" />
+
+
+### Week 6 Outcome
+- Installed Kong API Gateway via Helm as the cluster's single external ingress point.
+- Configured an Ingress resource routing external traffic to the frontend microservice.
+- Diagnosed and resolved a real conflict between Kong and Week 5's strict mTLS policy, without weakening backend's security posture.
+- Implemented and verified a rate-limiting plugin (5 requests/minute), confirmed via a written test script producing `429` responses on request 6 and 7.
+- Implemented API key authentication on the route, verified both the unauthenticated-rejection and valid-key-success paths.
+- Documented all real issues encountered and their root causes and fixes.
