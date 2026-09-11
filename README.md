@@ -1082,3 +1082,73 @@ Fix: Removed the Kiali/Prometheus addons (no longer needed after Week 5's docume
 - Implemented and verified a rate-limiting plugin (5 requests/minute), confirmed via a written test script producing `429` responses on request 6 and 7.
 - Implemented API key authentication on the route, verified both the unauthenticated-rejection and valid-key-success paths.
 - Documented all real issues encountered and their root causes and fixes.
+
+
+
+  ---
+
+# DevOps Internship - Week 7
+
+## Overview
+This week focused on setting up Continuous Integration (CI) for the microservices repository using GitHub Actions. The goal was to automate linting and testing on every push, and automatically build and push Docker images to a container registry whenever changes are merged to `main`, tagged with the Git commit SHA for traceability.
+
+## Project Structure
+```
+.github/
+  workflows/
+    ci-cd.yml
+backend/
+  test_app.py
+  requirements.txt (updated)
+frontend/
+  test_app.py
+  requirements.txt (updated)
+```
+
+## Technologies Used
+- **GitHub Actions** — CI/CD pipeline orchestration
+- **GitHub Container Registry (ghcr.io)** — chosen as the image registry for simplicity, since it uses the built-in `GITHUB_TOKEN` with no separate account or credentials needed
+- **flake8** — linting
+- **pytest** — unit testing (Flask test client)
+- **docker/build-push-action** and **docker/login-action** — official GitHub Actions for building and pushing Docker images
+
+## Workflow File Explained (`.github/workflows/ci-cd.yml`)
+The pipeline runs on every `push` and `pull_request` to `main`, and consists of two jobs:
+
+**`lint-and-test`**
+- Runs as a matrix across `backend` and `frontend`, so both services are tested independently and in parallel
+- Installs dependencies from each service's `requirements.txt`
+- Runs `flake8` restricted to `--select=E9,F63,F7,F82` (syntax errors and undefined names only) — deliberately lenient since the codebase had never been linted before this week
+- Runs `pytest -v` against `test_app.py` in each service
+
+**`build-and-push`**
+- Depends on `lint-and-test` passing (`needs: lint-and-test`)
+- Only runs on an actual push to `main` (`if: github.ref == 'refs/heads/main' && github.event_name == 'push'`) — so pull requests only run linting/tests, not image builds
+- Logs into `ghcr.io` using `docker/login-action`, authenticated with `github.actor` and the built-in `secrets.GITHUB_TOKEN`
+- Gets the short Git commit SHA via `git rev-parse --short HEAD`
+- Builds and pushes each service's image tagged both `:latest` and `:<short-sha>` — e.g. `ghcr.io/zubair378/backend:2244bd9`
+- Repository owner is explicitly lowercased in a separate step before use in the image tag, since `ghcr.io` requires lowercase image names and the GitHub username (`Zubair378`) has a capital letter
+
+- <img width="1786" height="620" alt="image" src="https://github.com/user-attachments/assets/76c82a91-b14f-4578-85b1-008a477b853c" />
+
+
+## Verification
+- Created `backend/test_app.py` and `frontend/test_app.py`, each testing `/health` (status 200) and `/info` (status 200 + JSON contains a `service` key) — deliberately checking structure rather than exact response text, since frontend's `/health` intentionally returns `{"status": "good idea"}` instead of `"ok"`
+- Pushed to `main` and confirmed all four jobs completed successfully: `lint-and-test (backend)`, `lint-and-test (frontend)`, `build-and-push (backend)`, `build-and-push (frontend)` — total run time 51s
+- Confirmed both `backend` and `frontend` packages appear under GitHub → Packages, published under `Zubair378/Devops-internship`, confirming the images were successfully built and pushed to `ghcr.io`
+
+## Issues Faced & Troubleshooting
+- **Stale cached PAT:** the old Personal Access Token stored via `credential.helper store` had expired, causing `git push` to fail with "Invalid username or token." Fixed by clearing `~/.git-credentials` and generating a fresh token.
+- **Missing `workflow` scope:** the first new token was generated with only the `repo` scope, which GitHub rejects for any push that creates or modifies files inside `.github/workflows/` (error: `refusing to allow a Personal Access Token to create or update workflow ... without workflow scope`). Fixed by regenerating the token with both `repo` and `workflow` scopes checked.
+- **GITHUB_TOKEN permissions:** by default the built-in `GITHUB_TOKEN` used inside the workflow has read-only permissions, which would have caused the `build-and-push` job to fail when pushing to `ghcr.io`. Fixed proactively by enabling "Read and write permissions" under repo Settings → Actions → General → Workflow permissions, before the first push.
+- **Case sensitivity in image names:** `ghcr.io` requires lowercase repository/image names, but the GitHub username `Zubair378` contains a capital letter. Solved by adding a dedicated step in the workflow to lowercase `github.repository_owner` before using it in the image tag, avoiding a build failure that would otherwise have occurred on the first run.
+
+
+<img width="1689" height="810" alt="image" src="https://github.com/user-attachments/assets/a6b3ef02-5028-4076-a831-7379494150eb" />
+
+## Outcome Checklist
+- [x] GitHub Actions workflow set up for the microservices repository
+- [x] CI pipeline runs linting and basic unit tests on every push
+- [x] CI pipeline builds Docker images and pushes them to a container registry (ghcr.io) on merges to `main`
+- [x] Image tagging implemented using Git commit SHAs
+- [x] Pipeline verified running successfully, with both `backend` and `frontend` images confirmed present in the registry
