@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  service.slack: |
+    token: $slack-token
+  template.app-sync-failed: |
+    message: |
+      Application {{.app.metadata.name}} sync FAILED.
+      Repo: {{.app.spec.source.repoURL}}
+      Revision: {{.app.status.sync.revision}}
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      send: [app-sync-failed]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret
+  namespace: argocd
+stringData:
+  slack-token: "xoxb-placeholder-token-not-live"
