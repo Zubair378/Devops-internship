@@ -10,7 +10,7 @@ backend:
     repository: backend
     tag: "1.0"
     pullPolicy: Never
-  replicaCount: 2
+  replicaCount: 3
   port: 5000
   resources:
     requests:
