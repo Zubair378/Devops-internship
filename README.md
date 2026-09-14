@@ -1152,3 +1152,97 @@ The pipeline runs on every `push` and `pull_request` to `main`, and consists of 
 - [x] CI pipeline builds Docker images and pushes them to a container registry (ghcr.io) on merges to `main`
 - [x] Image tagging implemented using Git commit SHAs
 - [x] Pipeline verified running successfully, with both `backend` and `frontend` images confirmed present in the registry
+
+# Week 8 — ArgoCD GitOps: Auto-Sync, Notifications, Workflow Documentation
+
+## Overview
+This week extends the microservices deployment with a full GitOps workflow using ArgoCD. The Git repository is the single source of truth: ArgoCD continuously watches it, detects drift between desired and live state, and automatically reconciles the Kubernetes cluster — no manual `kubectl apply` needed for day-to-day changes.
+
+## Task status
+
+| Task | Status |
+|---|---|
+| Install ArgoCD into cluster | ✅ Done |
+| Configure ArgoCD to monitor Git repo / Helm chart | ✅ Done |
+| Push a manifest change, observe auto-sync, document sync time | ✅ Done |
+| Set up notifications (Slack/email) for sync failures | ⚠️ Config done, controller not installed (see below) |
+| Document the GitOps workflow with an architecture diagram | ✅ Done (below) |
+
+## GitOps workflow
+
+1. Developer pushes changes to `main` in the Git repository (Helm chart / manifests)
+2. ArgoCD's `application-controller` polls the repo on its default ~3 minute interval
+3. It diffs the desired state (Git) against the live cluster state
+4. On drift, the Application's sync status flips `Synced` → `OutOfSync`
+5. Auto-sync applies the new manifest to the cluster
+6. Kubernetes rolls the deployment — new/updated pods, replica count enforced
+7. ArgoCD re-checks health; status returns to `Synced` + `Healthy`
+8. On sync failure, a notification trigger fires (see [Notifications](#notifications))
+
+```
+Developer → Git repo → ArgoCD controller → Diff detected → Auto-sync
+                                                                 │
+                                                                 ▼
+                                            Notification  ←  Health check  ←  Kubernetes cluster
+                                            (on failure)     (Synced/Healthy)   (pods rolled)
+```
+
+## Verified test run
+
+A live change was pushed to confirm auto-sync actually works end to end, not just in theory.
+
+- **Change:** `replicaCount: 3` in the backend Helm values
+- **Push time:** 21:01:55 PKT
+- **Observed transition:** `Synced` → `OutOfSync` → `Synced (Progressing)` → `Synced (Healthy)`
+- **Fully synced + healthy by:** 21:06:46 PKT
+- **Total sync time:** ~5 minutes, consistent with ArgoCD's default 3-minute Git polling interval
+- **Evidence of real work done:** new pod `backend-deployment-bbcc4dbf-sx2rc` observed at age 2m11s — the new 3rd replica created by the sync, not just a status flip
+
+```
+NAME                                 READY   STATUS    RESTARTS      AGE
+backend-deployment-bbcc4dbf-6289j    2/2     Running   1 (10m ago)   11m
+backend-deployment-bbcc4dbf-sx2rc    2/2     Running   0             2m11s   ← new replica from auto-sync
+backend-deployment-bbcc4dbf-xxkc9    2/2     Running   5 (20m ago)   19d
+```
+
+## Notifications
+
+`notifications-cm.yaml` defines an `argocd-notifications-cm` ConfigMap and `argocd-notifications-secret` Secret with:
+- A Slack service definition
+- A message template for sync failures (`app-sync-failed`)
+- A trigger (`on-sync-failed`) that fires when `app.status.operationState.phase` is `Error` or `Failed`
+
+**Known limitation:** this cluster's ArgoCD install does not include the `argocd-notifications-controller` component. Confirmed via:
+
+```bash
+kubectl get pods -n argocd
+```
+
+<img width="1920" height="1080" alt="Screenshot (1267)" src="https://github.com/user-attachments/assets/9913474e-cb0a-4ba9-9199-af12a90b1a4d" />
+
+
+which returns only `application-controller`, `applicationset-controller`, `redis`, `repo-server`, and `server` — no notifications controller. It was omitted to keep resource usage down in a RAM-constrained environment.
+
+The trigger and template configuration above is correct and would activate immediately once the controller is installed:
+
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/addons/notifications/install.yaml
+```
+
+<img width="1920" height="1080" alt="Screenshot (1268)" src="https://github.com/user-attachments/assets/cb21926a-5f12-4712-bf32-d8941c37d325" />
+
+
+No live Slack webhook token was provisioned in this environment — `slack-token` in the Secret is a placeholder.
+
+## Files in this directory
+
+| File | Purpose |
+|---|---|
+| `application.yaml` | ArgoCD Application resource pointing at the Git repo / Helm chart |
+| `notifications-cm.yaml` | Notifications ConfigMap + Secret (trigger, template, service config) |
+| `README.md` | This file |
+
+
+<img width="1920" height="1080" alt="Screenshot (1266)" src="https://github.com/user-attachments/assets/736ffca5-b457-4ddc-8faf-ebadb8e25ea2" />
+
+
