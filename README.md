@@ -1,4 +1,4 @@
-# DevOps Internship - Week 1
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/708708ae-d869-4ad7-8fee-7ac0d94ab58d" /># DevOps Internship - Week 1
 
 ## Project Overview
 
@@ -1152,3 +1152,185 @@ The pipeline runs on every `push` and `pull_request` to `main`, and consists of 
 - [x] CI pipeline builds Docker images and pushes them to a container registry (ghcr.io) on merges to `main`
 - [x] Image tagging implemented using Git commit SHAs
 - [x] Pipeline verified running successfully, with both `backend` and `frontend` images confirmed present in the registry
+
+# Week 8 — ArgoCD GitOps: Auto-Sync, Notifications, Workflow Documentation
+
+## Overview
+This week extends the microservices deployment with a full GitOps workflow using ArgoCD. The Git repository is the single source of truth: ArgoCD continuously watches it, detects drift between desired and live state, and automatically reconciles the Kubernetes cluster — no manual `kubectl apply` needed for day-to-day changes.
+
+## Task status
+
+| Task | Status |
+|---|---|
+| Install ArgoCD into cluster | ✅ Done |
+| Configure ArgoCD to monitor Git repo / Helm chart | ✅ Done |
+| Push a manifest change, observe auto-sync, document sync time | ✅ Done |
+| Set up notifications (Slack/email) for sync failures | ⚠️ Config done, controller not installed (see below) |
+| Document the GitOps workflow with an architecture diagram | ✅ Done (below) |
+
+## GitOps workflow
+
+1. Developer pushes changes to `main` in the Git repository (Helm chart / manifests)
+2. ArgoCD's `application-controller` polls the repo on its default ~3 minute interval
+3. It diffs the desired state (Git) against the live cluster state
+4. On drift, the Application's sync status flips `Synced` → `OutOfSync`
+5. Auto-sync applies the new manifest to the cluster
+6. Kubernetes rolls the deployment — new/updated pods, replica count enforced
+7. ArgoCD re-checks health; status returns to `Synced` + `Healthy`
+8. On sync failure, a notification trigger fires (see [Notifications](#notifications))
+
+```
+Developer → Git repo → ArgoCD controller → Diff detected → Auto-sync
+                                                                 │
+                                                                 ▼
+                                            Notification  ←  Health check  ←  Kubernetes cluster
+                                            (on failure)     (Synced/Healthy)   (pods rolled)
+```
+
+## Verified test run
+
+A live change was pushed to confirm auto-sync actually works end to end, not just in theory.
+
+- **Change:** `replicaCount: 3` in the backend Helm values
+- **Push time:** 21:01:55 PKT
+- **Observed transition:** `Synced` → `OutOfSync` → `Synced (Progressing)` → `Synced (Healthy)`
+- **Fully synced + healthy by:** 21:06:46 PKT
+- **Total sync time:** ~5 minutes, consistent with ArgoCD's default 3-minute Git polling interval
+- **Evidence of real work done:** new pod `backend-deployment-bbcc4dbf-sx2rc` observed at age 2m11s — the new 3rd replica created by the sync, not just a status flip
+
+```
+NAME                                 READY   STATUS    RESTARTS      AGE
+backend-deployment-bbcc4dbf-6289j    2/2     Running   1 (10m ago)   11m
+backend-deployment-bbcc4dbf-sx2rc    2/2     Running   0             2m11s   ← new replica from auto-sync
+backend-deployment-bbcc4dbf-xxkc9    2/2     Running   5 (20m ago)   19d
+```
+
+## Notifications
+
+`notifications-cm.yaml` defines an `argocd-notifications-cm` ConfigMap and `argocd-notifications-secret` Secret with:
+- A Slack service definition
+- A message template for sync failures (`app-sync-failed`)
+- A trigger (`on-sync-failed`) that fires when `app.status.operationState.phase` is `Error` or `Failed`
+
+**Known limitation:** this cluster's ArgoCD install does not include the `argocd-notifications-controller` component. Confirmed via:
+
+```bash
+kubectl get pods -n argocd
+```
+
+<img width="1920" height="1080" alt="Screenshot (1267)" src="https://github.com/user-attachments/assets/9913474e-cb0a-4ba9-9199-af12a90b1a4d" />
+
+
+which returns only `application-controller`, `applicationset-controller`, `redis`, `repo-server`, and `server` — no notifications controller. It was omitted to keep resource usage down in a RAM-constrained environment.
+
+The trigger and template configuration above is correct and would activate immediately once the controller is installed:
+
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/addons/notifications/install.yaml
+```
+
+<img width="1920" height="1080" alt="Screenshot (1268)" src="https://github.com/user-attachments/assets/cb21926a-5f12-4712-bf32-d8941c37d325" />
+
+
+No live Slack webhook token was provisioned in this environment — `slack-token` in the Secret is a placeholder.
+
+## Files in this directory
+
+| File | Purpose |
+|---|---|
+| `application.yaml` | ArgoCD Application resource pointing at the Git repo / Helm chart |
+| `notifications-cm.yaml` | Notifications ConfigMap + Secret (trigger, template, service config) |
+| `README.md` | This file |
+
+
+<img width="1920" height="1080" alt="Screenshot (1266)" src="https://github.com/user-attachments/assets/736ffca5-b457-4ddc-8faf-ebadb8e25ea2" />
+
+
+
+
+# Week 9 — Prometheus & Grafana
+
+## Overview
+This week installs the Prometheus and Grafana monitoring stack into the Week 2 minikube cluster via Helm, to give observability into the microservices and Kong Gateway running since Weeks 1–6, on top of the Istio (Week 5), Kong (Week 6), CI/CD (Week 7), and ArgoCD GitOps (Week 8) layers already in place.
+
+## Technologies Used
+- Prometheus (via the `kube-prometheus-stack` Helm chart)
+- Grafana (bundled in the same chart, with pre-built Kubernetes dashboards)
+- Helm v4.2.3
+- minikube cluster from Week 2
+
+## Installation
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+kubectl create namespace monitoring
+
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  -n monitoring \
+  --set grafana.adminPassword=admin123 \
+  --set alertmanager.enabled=false \
+  --set nodeExporter.enabled=false \
+  --set kubeStateMetrics.enabled=false \
+  --set prometheus.prometheusSpec.resources.requests.memory=128Mi \
+  --set grafana.resources.requests.memory=128Mi
+```
+
+Alertmanager, node-exporter, and kube-state-metrics were disabled to keep the install lightweight, since the cluster was already running Istio, Kong, and ArgoCD simultaneously on a memory-constrained host.
+
+## Accessing Grafana
+
+```bash
+kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
+```
+
+Then open `http://localhost:3000` and log in with:
+- **Username:** `admin`
+- **Password:** `admin123`
+
+## Verification
+
+
+<img width="1920" height="1080" alt="Screenshot (1279)" src="https://github.com/user-attachments/assets/f6ff24b9-52db-4136-bd89-893ec746068b" />
+
+
+Confirmed Grafana loads successfully and its pre-built Kubernetes dashboards (installed automatically with the chart) render live data from the cluster, including:
+- Kubernetes / Compute Resources / Namespace (Pods)
+- Kubernetes / Compute Resources / Pod
+- Kubernetes / Compute Resources / Cluster
+
+Screenshots of these dashboards are included in this folder as evidence of the working stack under the cluster's normal load.
+
+## Issues Faced & Troubleshooting
+
+
+<img width="1920" height="1080" alt="Screenshot (1283)" src="https://github.com/user-attachments/assets/3312fe15-96af-402b-bb7f-b05dd96ea651" />
+
+
+**1. Cluster under heavy memory pressure during install**
+Issue: With Istio, Kong, ArgoCD, and the application pods already running, installing the full `kube-prometheus-stack` pushed the host (limited to ~3.8GB via WSL2) close to its limit. The Kubernetes API server itself became briefly unresponsive, causing `kubectl` commands to intermittently fail with `TLS handshake timeout`.
+Fix: Disabled non-essential chart components (Alertmanager, node-exporter, kube-state-metrics) and temporarily scaled backend/frontend deployments down to 1 replica each to free memory, allowing the API server and Grafana to stabilize.
+
+**2. ArgoCD auto-sync reverting manual scale-down**
+Issue: Manually scaling `backend-deployment` down to free memory was automatically reverted by ArgoCD's auto-sync, since the Git repository (Week 8's Helm values) still declared the original replica count — a direct consequence of the GitOps model where Git is the enforced source of truth.
+Fix: Confirmed via `kubectl get applications -n argocd` that the `microservices-app` Application remained `Synced`/`Healthy` throughout; scaling adjustments were treated as temporary/local rather than permanent, in keeping with the GitOps principle that lasting changes belong in Git, not applied manually against the live cluster.
+
+**3. Prometheus StatefulSet contributing to memory pressure**
+Issue: Even with reduced resource requests, the Prometheus pod itself was one of the heaviest components competing for the limited remaining memory.
+Fix: Temporarily scaled the Prometheus StatefulSet to 0 replicas (`kubectl scale statefulset prometheus-monitoring-kube-prometheus-prometheus --replicas=0 -n monitoring`) to prioritize freeing memory for Grafana's UI, since verifying the dashboarding layer was the immediate priority.
+
+
+<img width="1920" height="1080" alt="Screenshot (1284)" src="https://github.com/user-attachments/assets/0f432785-cc59-486e-ad90-2c2448fa6d9c" />
+
+
+## Week 9 Outcome
+- Installed the `kube-prometheus-stack` Helm chart (Prometheus + Grafana) into a dedicated `monitoring` namespace.
+- Verified Grafana is reachable and its built-in Kubernetes dashboards render live cluster data.
+- Diagnosed and worked through real memory-pressure issues encountered when running a full observability stack alongside Istio, Kong, and ArgoCD on constrained hardware.
+- **Not fully completed this week, and flagged as follow-up work:** a custom Grafana dashboard specific to the backend/frontend microservices (request rate, error rate, latency), `ServiceMonitor` configuration to scrape `/metrics` from the Flask services and Kong, and code-provisioning that custom dashboard via a ConfigMap. The core Prometheus/Grafana platform is installed and verified as the foundation for this remaining work.
+
+<img width="1920" height="1080" alt="Screenshot (1285)" src="https://github.com/user-attachments/assets/1ff8dc18-7e64-47bd-93d4-9b6d39e9a129" />
+
+
+
