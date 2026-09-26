@@ -1333,4 +1333,81 @@ Fix: Temporarily scaled the Prometheus StatefulSet to 0 replicas (`kubectl scale
 <img width="1920" height="1080" alt="Screenshot (1285)" src="https://github.com/user-attachments/assets/1ff8dc18-7e64-47bd-93d4-9b6d39e9a129" />
 
 
+# DevOps Internship - Week 10
 
+## Overview
+
+This week configures Alertmanager on top of the Prometheus stack from Week 9, defines alert rules with different severity levels, sets up a notification channel, documents an incident response runbook, and proves the setup works by deliberately triggering a real alert.
+
+## Project Structure
+devops-week10/
+├── alert-rules.yaml # Alert rule definitions
+├── alertmanager-config.yaml # Notification channel config
+└── runbook.md # Incident response documentation
+
+
+## What Was Done
+
+- **Enabled Alertmanager**, which was disabled in Week 9 to save memory, by upgrading the existing Helm release for the monitoring stack.
+- **Defined 3 alert rules** with different severity levels:
+  - `HighAPILatency` (Warning) — fires when API server response times get too slow
+  - `HighErrorRate` (Critical) — fires when too many requests are failing with server errors
+  - `TargetDown` (Critical) — fires when Prometheus loses contact with something it's monitoring (e.g. a pod crash)
+- **Configured a notification channel** using a mock webhook receiver, since no live Slack workspace was available for this environment — verified the config was actually loaded by checking Alertmanager's logs.
+- **Wrote a full runbook** documenting what each alert means and the exact response steps for each one.
+- **Deliberately triggered an alert** by deleting a live backend pod, then confirmed in the Alertmanager UI that it was correctly detected and shown as a firing alert.
+
+## How to Run
+
+```bash
+# Enable Alertmanager on the existing monitoring release
+helm upgrade monitoring prometheus-community/kube-prometheus-stack -n monitoring --reuse-values --set alertmanager.enabled=true
+
+# Apply the alert rules
+kubectl apply -f devops-week10/alert-rules.yaml
+
+# Apply the notification channel config
+kubectl apply -f devops-week10/alertmanager-config.yaml
+
+# View alerts in the browser
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-alertmanager 9093:9093
+# then open http://localhost:9093
+```
+
+<img width="1920" height="1080" alt="Screenshot (1293)" src="https://github.com/user-attachments/assets/f2edf4c1-2d59-4ec0-826b-146864ccc383" />
+
+
+## Verification
+
+Deleted a running backend pod to simulate a real failure, then confirmed the alert appeared as firing in the Alertmanager UI, grouped correctly by namespace — proving the whole pipeline (Prometheus detecting the issue → Alertmanager receiving and routing it) actually works, not just configured on paper.
+
+## Issues Faced & Troubleshooting
+
+**1. Existing monitoring stack found in a failed state**
+The Week 9 install was crash-looping when this week started. Root cause was severe memory/swap exhaustion on the host machine, which made the whole cluster unresponsive. Fixed with a full WSL shutdown to clear memory, followed by a fresh cluster restart.
+
+**2. Mass pod restarts after the cluster restart**
+Nearly every pod across the cluster briefly showed errors simultaneously right after restarting — this was just normal startup contention (everything competing for resources at once), and resolved on its own after waiting about a minute without running more commands.
+
+**3. Docker Desktop closed instead of minimized**
+Fully closing Docker Desktop (rather than minimizing it) stopped the container runtime the cluster depends on, causing cluster commands to fail. Fixed by reopening Docker Desktop and waiting for it to fully start before continuing — and confirmed it needs to stay running for the entire session going forward.
+
+**4. A Helm upgrade appeared to hang and was interrupted**
+Cancelling it left the release in a "pending" status, but the actual resources (Alertmanager) had already been created successfully underneath — the pending status was just leftover bookkeeping, not a real failure.
+
+
+<img width="1920" height="1080" alt="Screenshot (1295)" src="https://github.com/user-attachments/assets/832eaa0a-9e24-47cc-b09a-4dde0ac2cf62" />
+
+
+## Week 10 Outcome
+
+
+
+<img width="1920" height="1080" alt="Screenshot (1293)" src="https://github.com/user-attachments/assets/2688e7f4-4dcb-4b22-916c-f228ad374007" />
+
+
+- Alertmanager enabled and running.
+- 3 alert rules applied, covering both warning and critical severities.
+- Notification channel configured and verified loaded.
+- Full incident response runbook written.
+- Alert successfully triggered and confirmed firing end-to-end.
