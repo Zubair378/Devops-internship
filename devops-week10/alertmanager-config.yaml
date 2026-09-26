@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-monitoring-kube-prometheus-alertmanager
+  namespace: monitoring
+  labels:
+    release: monitoring
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: 'mock-webhook'
+      group_by: ['alertname', 'severity']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 1h
+    receivers:
+      - name: 'mock-webhook'
+        webhook_configs:
+          - url: 'http://mock-notification-receiver.monitoring.svc.cluster.local:8080/alerts'
+            send_resolved: true
