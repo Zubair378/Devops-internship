@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+  namespace: default
+  labels:
+    app: backend
+    app.kubernetes.io/part-of: devops-week11
+spec:
+  replicas: 10
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: backend:faulty-v3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  strategy:
+    canary:
+      canaryService: backend-canary
+      stableService: backend-stable
+      steps:
+        - setWeight: 10
+        - pause: { duration: 10s }
+        - analysis:
+            templates:
+              - templateName: canary-fail-simulation
+            args:
+              - name: service-name
+                value: backend-canary
+        - setWeight: 50
+        - setWeight: 100

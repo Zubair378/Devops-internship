@@ -1,0 +1,72 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: prometheus-success-rate
+  namespace: default
+  labels:
+    app.kubernetes.io/part-of: devops-week11
+spec:
+  args:
+    - name: service-name
+      value: backend-canary
+  metrics:
+    - name: success-rate
+      interval: 10s
+      count: 3
+      successCondition: len(result) == 0 || result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(flask_http_request_total{status!~"5.*"}[1m]))
+              /
+              (sum(rate(flask_http_request_total[1m])) > 0)
+            ) or on() vector(1)
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: prometheus-error-rate
+  namespace: default
+  labels:
+    app.kubernetes.io/part-of: devops-week11
+spec:
+  args:
+    - name: service-name
+      value: backend-canary
+  metrics:
+    - name: error-rate
+      interval: 10s
+      count: 3
+      successCondition: len(result) == 0 || result[0] <= 0.05
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(flask_http_request_total{status=~"5.."}[1m]))
+              /
+              (sum(rate(flask_http_request_total[1m])) > 0)
+            ) or on() vector(0)
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: canary-fail-simulation
+  namespace: default
+  labels:
+    app.kubernetes.io/part-of: devops-week11
+spec:
+  metrics:
+    - name: error-rate-threshold-check
+      interval: 5s
+      count: 2
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: vector(0.40)
