@@ -10,7 +10,7 @@ kubectl create namespace argo-rollouts --dry-run=client -o yaml | kubectl apply 
 
 # 2. Install Argo Rollouts CRDs & Controller
 echo "[1/3] Applying Argo Rollouts manifests..."
-kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+kubectl apply --server-side -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 
 # 3. Wait for controller deployment to be ready
 echo "[2/3] Waiting for Argo Rollouts controller to become ready..."
