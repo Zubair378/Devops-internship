@@ -166,8 +166,12 @@ bash install-argo-rollouts.sh
 kubectl get pods -n argo-rollouts
 ```
 
-📸 **Screenshot Opportunity 1:**
+
 Capture the terminal showing `argo-rollouts` pods in `Running` state and `kubectl argo rollouts version`.
+
+<img width="1920" height="1080" alt="Screenshot (1304)" src="https://github.com/user-attachments/assets/e994c654-cade-405e-a52b-20f51d6c8487" />
+
+
 
 ---
 
@@ -188,8 +192,10 @@ kubectl apply -f rollout.yaml
 kubectl argo rollouts get rollout backend-rollout
 ```
 
-📸 **Screenshot Opportunity 2:**
 Capture the terminal showing `backend-rollout` at Revision 1 with 10 stable pods active.
+
+<img width="1920" height="1080" alt="Screenshot (1306)" src="https://github.com/user-attachments/assets/b505ee3d-0caf-41f8-b9c6-b94ef91c3bf9" />
+
 
 ---
 
@@ -212,8 +218,10 @@ kubectl argo rollouts get rollout backend-rollout --watch
 5. **Weight 60%:** Canary scales to 6 pods, stable scales to 4 pods.
 6. **Weight 100%:** Canary scales to 10 pods, revision 1 is phased out.
 
-📸 **Screenshot Opportunity 3:**
 Capture the terminal showing the 10% canary step with 1 canary pod and 9 stable pods, and the subsequent completed promotion to Revision 2.
+
+<img width="1920" height="1080" alt="Screenshot (1307)" src="https://github.com/user-attachments/assets/6a9c072e-89eb-4916-987b-4c4b596b8e5c" />
+
 
 ---
 
@@ -248,11 +256,13 @@ kubectl argo rollouts get rollout backend-rollout
 kubectl get pods -l app=backend
 ```
 
-📸 **Screenshot Opportunity 4:**
 Capture the terminal showing:
 - `kubectl get analysisruns` with `Status: Failed`.
 - `kubectl argo rollouts get rollout backend-rollout` displaying `Status: Degraded` and `Message: RolloutAborted`.
 - `kubectl get pods -l app=backend` proving all active pods are on the stable revision.
+
+  <img width="1920" height="1080" alt="Screenshot (1308)" src="https://github.com/user-attachments/assets/d03da736-faec-4428-a13a-1ece54b1f1f5" />
+
 
 ---
 
@@ -265,6 +275,9 @@ For complete details on the formal incident escalation path, metric queries, fai
 ---
 
 ## Summary of Week 11 Accomplishments
+
+<img width="1920" height="1080" alt="Screenshot (1309)" src="https://github.com/user-attachments/assets/03a5121a-0d86-4795-bd46-dbe9d0a31f0f" />
+
 
 * **Implemented Cloud-Native Progressive Delivery:** Replaced static rolling updates with dynamic, metric-validated canary releases using Argo Rollouts.
 * **Granular Traffic Control:** Established an automated canary progression starting at 10% traffic weight, advancing through 30%, 60%, and 100% thresholds.
