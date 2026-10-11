@@ -4,8 +4,8 @@ This directory contains the final integrated version of the internship project.
 Earlier week directories remain as historical exercises. Use this guide for the
 final deployment; do not apply the older standalone rollout and chart over it.
 
-**Live validation is incomplete.** CI and local checks pass, but repeated WSL
-runtime failures blocked the full deployment. Read the [verification status](evidence/STATUS.md)
+**Live validation is incomplete.** CI and local checks pass, but Docker/WSL timeouts
+during cluster reconciliation blocked the full deployment. Read the [verification status](evidence/STATUS.md)
 for completed checks, actual evidence, and the remaining work. This is not yet a
 verified final demo.
 

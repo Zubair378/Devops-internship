@@ -23,7 +23,11 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo add kong https://charts.konghq.com
 helm repo add istio https://istio-release.storage.googleapis.com/charts
 helm repo update
-helm upgrade --install istio-base istio/base --version 1.30.5 -n istio-system --create-namespace --wait --timeout 10m
+if helm history istio-base --namespace istio-system -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(r["status"] == "deployed" and r["chart"] == "base-1.30.5" for r in d) else 1)'; then
+  echo "Pinned Istio base chart already has a deployed release; skipping its unchanged CRDs."
+else
+  helm upgrade --install istio-base istio/base --version 1.30.5 -n istio-system --create-namespace --wait --timeout 10m
+fi
 helm upgrade --install istiod istio/istiod --version 1.30.5 -n istio-system -f "$ROOT/istio-values.yaml" --wait --timeout 10m
 k label namespace default istio-injection=enabled --overwrite
 k create namespace argo-rollouts --dry-run=client -o yaml | k apply -f -

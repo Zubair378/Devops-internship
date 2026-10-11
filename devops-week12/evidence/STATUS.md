@@ -1,4 +1,4 @@
-# Verification status — 11 October 2026
+# Verification status — 12 October 2026
 
 **Incomplete: the live end-to-end demo has not passed.**
 
@@ -15,20 +15,21 @@ Verified:
 Live findings:
 - The existing cluster initially lacked ArgoCD, Kong and monitoring components.
 - Kubernetes and Istio were recovered; monitoring installation remained incomplete.
-- The original Quay CDN DNS route timed out. An alternate DNS-over-HTTPS answer
-  passed TLS hostname verification. An actual image-layer range request returned
-  HTTP 206 and 1024 bytes, but full Docker pulls did not complete.
-- Docker/WSL repeatedly stopped, including a Docker WSL startup error with status
-  `0xc00000fd` and a subsequent `Wsl/Service/E_UNEXPECTED` failure.
-- Windows also reported an allocation failure while C: had about 225 MB free.
-  Disk space later increased, but the WSL failure recurred. The root cause of the
-  recurring WSL crashes is not established by these observations.
-- WSL memory was reduced from 5 GB to 3500 MB, processors from four to three, and
-  automatic cache reclaim enabled. The original file is backed up at
+- The original Quay CDN DNS route timed out. The repair script now resolves and
+  verifies the CDN certificate from inside the actual minikube node. A full
+  Prometheus Operator image pull succeeded, and Prometheus and Alertmanager pods
+  subsequently reached Running.
+- The repeatable bootstrap still times out while upgrading the Istio base CRDs:
+  the Kubernetes API did not respond before the Helm timeout. A subsequent run
+  also ended with Docker API/WSL connection timeouts. ArgoCD and Kong were not
+  installed, the dashboard was not ready, and the final application was not
+  deployed or verified.
+- WSL was limited to 3500 MB, automatic cache reclaim enabled, and its CPU count
+  restored to the original four. The prior settings are backed up at
   `C:\Users\TARIQ COMPUTER\.wslconfig.week12-backup`.
-- Docker processes were stopped after graceful shutdown timed out, to end the
-  restart loop. No cluster/profile, application data, or unrelated user files
-  were deleted. Ubuntu remains available for the saved source and local tests.
+- The root cause of the slow Kubernetes API and repeated Docker/WSL timeouts is
+  still unresolved. No cluster/profile, application data, or unrelated user
+  files were deleted. The local source and test environment are saved.
 
 Still required before calling this demo complete:
 1. Recover a stable Docker/WSL runtime (restart Windows after saving open work).
@@ -40,8 +41,8 @@ Still required before calling this demo complete:
 7. Recreate the platform in a separate profile and verify it from scratch.
 8. Capture the live ArgoCD, gateway, Prometheus and Grafana screens.
 
-No `verification.json` success report has been generated. The CI screenshot and
-local-test screenshot are evidence only of their respective checks.
+No `verification.json` success report has been generated. The screenshots show
+CI and local checks only; they do not show a successful live deployment.
 
 The exit survey needs the student's own feedback. The supplied assignment screen
 shows the submission window locked; this must be handled with the course provider.

@@ -10,12 +10,14 @@ import urllib.request
 HOST = "cdn01.quay.io"
 
 
-def reachable(address):
+def reachable(address, profile):
     try:
-        with socket.create_connection((address, 443), timeout=4) as connection:
-            with ssl.create_default_context().wrap_socket(connection, server_hostname=HOST):
-                return True
-    except (OSError, ssl.SSLError):
+        result = subprocess.run(
+            ["docker", "exec", profile, "openssl", "s_client", "-connect", address + ":443",
+             "-servername", HOST, "-verify_return_error", "-verify_hostname", HOST, "-brief"],
+            input="", text=True, capture_output=True, timeout=7)
+        return result.returncode == 0 and "Verification: OK" in result.stderr
+    except (OSError, subprocess.TimeoutExpired):
         return False
 
 
@@ -29,7 +31,7 @@ def main():
     result = subprocess.run(["docker", "exec", profile, "getent", "ahostsv4", HOST],
                             text=True, capture_output=True)
     addresses = list(dict.fromkeys(line.split()[0] for line in result.stdout.splitlines()))
-    if any(reachable(address) for address in addresses[:3]):
+    if any(reachable(address, profile) for address in addresses[:3]):
         print("Quay CDN route is reachable")
         return
     request = urllib.request.Request(
@@ -41,7 +43,7 @@ def main():
         if answer["type"] != 1:
             continue
         address = answer["data"]
-        if not ipaddress.ip_address(address).is_global or not reachable(address):
+        if not ipaddress.ip_address(address).is_global or not reachable(address, profile):
             continue
         original = subprocess.check_output(["docker", "exec", profile, "cat", "/etc/hosts"], text=True)
         lines = [line for line in original.splitlines() if HOST not in line.split("#", 1)[0].split()[1:]]
