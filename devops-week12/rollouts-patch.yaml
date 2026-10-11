@@ -1,0 +1,9 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: argo-rollouts
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests: {cpu: 20m, memory: 64Mi}
+            limits: {memory: 256Mi}

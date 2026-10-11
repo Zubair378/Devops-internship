@@ -1,0 +1,27 @@
+Waiting for the CI run to appear.
+{"id": 38113483248, "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38113483248", "head_sha": "1d845a31b12f9ca4dc31a5d90e5650da08f2d649", "status": "queued", "conclusion": null}
+{"id": 38113483248, "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38113483248", "head_sha": "1d845a31b12f9ca4dc31a5d90e5650da08f2d649", "status": "in_progress", "conclusion": null}
+{"id": 38113483248, "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38113483248", "head_sha": "1d845a31b12f9ca4dc31a5d90e5650da08f2d649", "status": "in_progress", "conclusion": null}
+{"id": 38113483248, "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38113483248", "head_sha": "1d845a31b12f9ca4dc31a5d90e5650da08f2d649", "status": "completed", "conclusion": "success"}
+[
+  {
+    "name": "lint-and-test (frontend)",
+    "conclusion": "success"
+  },
+  {
+    "name": "lint-and-test (backend)",
+    "conclusion": "success"
+  },
+  {
+    "name": "build-and-push (backend)",
+    "conclusion": "success"
+  },
+  {
+    "name": "build-and-push (frontend)",
+    "conclusion": "success"
+  },
+  {
+    "name": "update-gitops",
+    "conclusion": "success"
+  }
+]

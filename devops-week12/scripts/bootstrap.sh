@@ -28,6 +28,7 @@ helm upgrade --install istiod istio/istiod --version 1.30.5 -n istio-system -f "
 k label namespace default istio-injection=enabled --overwrite
 k create namespace argo-rollouts --dry-run=client -o yaml | k apply -f -
 k apply --server-side -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.10.0/install.yaml
+k -n argo-rollouts patch deployment argo-rollouts --patch-file "$ROOT/rollouts-patch.yaml"
 k -n argo-rollouts rollout status deployment/argo-rollouts --timeout=180s
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 92.3.0 -n monitoring --create-namespace -f "$ROOT/monitoring-values.yaml" --wait --timeout 15m
 helm upgrade --install kong kong/kong --version 3.4.1 -n kong --create-namespace -f "$ROOT/kong-values.yaml" --wait --timeout 10m

@@ -1,4 +1,21 @@
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/708708ae-d869-4ad7-8fee-7ac0d94ab58d" /># DevOps Internship - Week 1
+# DevOps Internship — Final Week 12 Integration
+
+Use the [Week 12 setup and demo guide](devops-week12/README.md) for the
+CI → GHCR → ArgoCD → Istio/Kong → Prometheus → Grafana implementation.
+It includes the architecture, pinned infrastructure and verification commands.
+
+**Live verification is incomplete due to recurring Docker/WSL failures.**
+CI and local tests pass. Read the [actual verification status and remaining work](devops-week12/evidence/STATUS.md)
+and [saved screenshots](devops-week12/evidence/screenshots).
+
+The historical exercises below preserve earlier observations. Their standalone
+installation commands should not be applied over the Week 12 deployment.
+
+---
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/708708ae-d869-4ad7-8fee-7ac0d94ab58d" />
+
+# DevOps Internship - Week 1
 
 ## Project Overview
 
@@ -1701,18 +1718,4 @@ For complete details on the formal incident escalation path, metric queries, fai
 * **Granular Traffic Control:** Established an automated canary progression starting at 10% traffic weight, advancing through 30%, 60%, and 100% thresholds.
 * **Integrated Observability:** Reused Week 9 Prometheus monitoring infrastructure as the automated gatekeeper for release quality.
 * **Zero-Downtime Automated Resilience:** Confirmed that faulty releases trigger instant automated rollback, safeguarding user traffic with zero manual intervention required.
-
-# Final integrated platform — Week 12
-
-Use the [Week 12 setup and demo guide](devops-week12/README.md) for the final
-CI → GHCR → ArgoCD → Istio/Kong → Prometheus → Grafana implementation.
-It includes the architecture, pinned infrastructure configuration, repeatable
-installation and verification commands. Final evidence is collected in
-[devops-week12/evidence](devops-week12/evidence).
-
-The sections below preserve earlier exercises and their original observations.
-Their standalone install commands describe those weeks, and should not be
-applied over the final deployment.
-
----
 

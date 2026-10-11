@@ -1,0 +1,81 @@
+😄  [devops-week2] minikube v1.38.1 on Ubuntu 24.04 (amd64)
+✨  Using the docker driver based on existing profile
+👍  Starting "devops-week2" primary control-plane node in "devops-week2" cluster
+🚜  Pulling base image v0.0.50 ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+🏄  Done! kubectl is now configured to use "devops-week2" cluster and "default" namespace by default
+node/devops-week2 condition met
+"argo" already exists with the same configuration, skipping
+"prometheus-community" already exists with the same configuration, skipping
+"kong" already exists with the same configuration, skipping
+"istio" already exists with the same configuration, skipping
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "kong" chart repository
+...Successfully got an update from the "argo" chart repository
+...Successfully got an update from the "istio" chart repository
+...Successfully got an update from the "prometheus-community" chart repository
+Update Complete. ⎈Happy Helming!⎈
+Release "istio-base" does not exist. Installing it now.
+NAME: istio-base
+LAST DEPLOYED: Sun Oct 11 10:02:51 2026
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+Istio base successfully installed!
+
+To learn more about the release, try:
+  $ helm status istio-base -n istio-system
+  $ helm get all istio-base -n istio-system
+Release "istiod" does not exist. Installing it now.
+NAME: istiod
+LAST DEPLOYED: Sun Oct 11 10:03:00 2026
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+"istiod" successfully installed!
+
+To learn more about the release, try:
+  $ helm status istiod -n istio-system
+  $ helm get all istiod -n istio-system
+
+Next steps:
+  * Deploy a Gateway: https://istio.io/latest/docs/setup/additional-setup/gateway/
+  * Try out our tasks to get started on common configurations:
+    * https://istio.io/latest/docs/tasks/traffic-management
+    * https://istio.io/latest/docs/tasks/security/
+    * https://istio.io/latest/docs/tasks/policy-enforcement/
+  * Review the list of actively supported releases, CVE publications and our hardening guide:
+    * https://istio.io/latest/docs/releases/supported-releases/
+    * https://istio.io/latest/news/security/
+    * https://istio.io/latest/docs/ops/best-practices/security/
+
+For further documentation see https://istio.io website
+namespace/default labeled
+namespace/argo-rollouts unchanged
+customresourcedefinition.apiextensions.k8s.io/analysisruns.argoproj.io serverside-applied
+customresourcedefinition.apiextensions.k8s.io/analysistemplates.argoproj.io serverside-applied
+customresourcedefinition.apiextensions.k8s.io/clusteranalysistemplates.argoproj.io serverside-applied
+customresourcedefinition.apiextensions.k8s.io/experiments.argoproj.io serverside-applied
+customresourcedefinition.apiextensions.k8s.io/rollouts.argoproj.io serverside-applied
+serviceaccount/argo-rollouts serverside-applied
+clusterrole.rbac.authorization.k8s.io/argo-rollouts serverside-applied
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-admin serverside-applied
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-edit serverside-applied
+clusterrole.rbac.authorization.k8s.io/argo-rollouts-aggregate-to-view serverside-applied
+clusterrolebinding.rbac.authorization.k8s.io/argo-rollouts serverside-applied
+configmap/argo-rollouts-config serverside-applied
+secret/argo-rollouts-notification-secret serverside-applied
+service/argo-rollouts-metrics serverside-applied
+deployment.apps/argo-rollouts serverside-applied
+deployment "argo-rollouts" successfully rolled out
+Release "monitoring" does not exist. Installing it now.
+Error: resource Deployment/monitoring/monitoring-grafana not ready. status: Failed, message: Progress deadline exceeded
+resource Deployment/monitoring/monitoring-kube-prometheus-operator not ready. status: Failed, message: Progress deadline exceeded

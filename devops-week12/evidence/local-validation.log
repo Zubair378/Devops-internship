@@ -1,0 +1,6 @@
+.....ss.                                                                 [100%]
+6 passed, 2 skipped in 4.65s
+==> Linting devops-week12/chart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed

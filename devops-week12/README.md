@@ -4,8 +4,10 @@ This directory contains the final integrated version of the internship project.
 Earlier week directories remain as historical exercises. Use this guide for the
 final deployment; do not apply the older standalone rollout and chart over it.
 
-**Validation is in progress.** The final results and screenshots will be recorded
-in `evidence/` after live verification.
+**Live validation is incomplete.** CI and local checks pass, but repeated WSL
+runtime failures blocked the full deployment. Read the [verification status](evidence/STATUS.md)
+for completed checks, actual evidence, and the remaining work. This is not yet a
+verified final demo.
 
 ## Architecture
 
