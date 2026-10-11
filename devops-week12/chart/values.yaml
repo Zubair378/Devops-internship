@@ -1,6 +1,6 @@
 image:
   owner: zubair378
-  tag: bootstrap
+  tag: "1d845a31b12f9ca4dc31a5d90e5650da08f2d649"
   pullPolicy: IfNotPresent
 backend:
   replicas: 2
