@@ -76,6 +76,9 @@ Kong API key if needed, and applies the ArgoCD Application.
 The first installation downloads several large images. Wait for the script to
 finish rather than interrupting a Helm installation. Run it again to reconcile
 the same setup. It does not destroy an existing cluster.
+When reusing the internship cluster, the script adopts manually installed Kong
+CRDs into the `kong` Helm release. It stops if their ownership identifies a
+different release or manager; it does not replace the definitions during adoption.
 
 For a separate reproducibility test, use a different profile:
 

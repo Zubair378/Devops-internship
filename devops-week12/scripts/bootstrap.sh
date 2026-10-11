@@ -35,6 +35,7 @@ k apply --server-side -n argo-rollouts -f https://github.com/argoproj/argo-rollo
 k -n argo-rollouts patch deployment argo-rollouts --patch-file "$ROOT/rollouts-patch.yaml"
 k -n argo-rollouts rollout status deployment/argo-rollouts --timeout=180s
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 92.3.0 -n monitoring --create-namespace -f "$ROOT/monitoring-values.yaml" --wait --timeout 15m
+python3 "$ROOT/scripts/adopt_kong_crds.py" --context "$PROFILE" --apply
 helm upgrade --install kong kong/kong --version 3.4.1 -n kong --create-namespace -f "$ROOT/kong-values.yaml" --wait --timeout 10m
 helm upgrade --install argocd argo/argo-cd --version 10.10.2 -n argocd --create-namespace -f "$ROOT/argocd-values.yaml" --wait --timeout 10m
 if ! k -n default get secret week12-api-key >/dev/null 2>&1; then
