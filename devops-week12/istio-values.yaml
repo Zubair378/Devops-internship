@@ -1,4 +1,6 @@
+autoscaleEnabled: false
 pilot:
+  autoscaleEnabled: false
   resources:
     requests: {cpu: 50m, memory: 96Mi}
     limits: {memory: 256Mi}

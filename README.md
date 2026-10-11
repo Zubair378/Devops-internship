@@ -1702,3 +1702,17 @@ For complete details on the formal incident escalation path, metric queries, fai
 * **Integrated Observability:** Reused Week 9 Prometheus monitoring infrastructure as the automated gatekeeper for release quality.
 * **Zero-Downtime Automated Resilience:** Confirmed that faulty releases trigger instant automated rollback, safeguarding user traffic with zero manual intervention required.
 
+# Final integrated platform — Week 12
+
+Use the [Week 12 setup and demo guide](devops-week12/README.md) for the final
+CI → GHCR → ArgoCD → Istio/Kong → Prometheus → Grafana implementation.
+It includes the architecture, pinned infrastructure configuration, repeatable
+installation and verification commands. Final evidence is collected in
+[devops-week12/evidence](devops-week12/evidence).
+
+The sections below preserve earlier exercises and their original observations.
+Their standalone install commands describe those weeks, and should not be
+applied over the final deployment.
+
+---
+

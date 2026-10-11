@@ -7,11 +7,15 @@ for tool in docker minikube kubectl helm python3 openssl; do
   command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool"; exit 1; }
 done
 docker info >/dev/null
-if minikube profile list -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(p["Name"] == sys.argv[1] for p in d.get("valid", [])) else 1)' "$PROFILE"; then
+if minikube status -p "$PROFILE" >/dev/null 2>&1; then
+  minikube update-context -p "$PROFILE"
+elif minikube profile list -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(p["Name"] == sys.argv[1] for p in d.get("valid", [])) else 1)' "$PROFILE"; then
   minikube start -p "$PROFILE" --driver=docker
 else
-  minikube start -p "$PROFILE" --driver=docker --memory=3072 --cpus=2 --kubernetes-version=v1.35.1
+  minikube start -p "$PROFILE" --driver=docker --memory=3072 --cpus=3 --kubernetes-version=v1.35.1
 fi
+docker update --cpus=3 --memory=3g --memory-swap=5g "$PROFILE"
+python3 "$ROOT/scripts/repair_registry_dns.py" --profile "$PROFILE"
 k() { kubectl --context "$PROFILE" "$@"; }
 k wait --for=condition=Ready node --all --timeout=180s
 helm repo add argo https://argoproj.github.io/argo-helm
