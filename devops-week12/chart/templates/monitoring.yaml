@@ -22,7 +22,7 @@ spec:
     - name: week12
       rules:
         - alert: Week12MetricsMissing
-          expr: absent(up{job=~"backend-service|frontend-service"}) or up{job=~"backend-service|frontend-service"} == 0
+          expr: absent(up{job="backend-service"}) or absent(up{job="frontend-service"}) or up{job=~"backend-service|frontend-service"} == 0
           for: 2m
           labels: {severity: critical}
           annotations:
