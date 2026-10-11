@@ -1,0 +1,21 @@
+Sun Oct 11 20:30:08 UTC 2026
+               total        used        free      shared  buff/cache   available
+Mem:            3331        2029          24           3        1368        1301
+Swap:           4096        1201        2894
+some avg10=48.24 avg60=40.01 avg300=28.49 total=513760438
+full avg10=30.87 avg60=24.38 avg300=18.43 total=362706780
+[  688.862135]  vmbus_alloc_ring+0x78/0xd0
+[  690.537691] WSL (3760 - SessionLeader) ERROR: UtilAcceptVsock:281: accept4 failed 110
+[  690.556334] WSL (3760 - SessionLeader) ERROR: operator():1265: UtilAcceptVsock() failed for session leader 110
+[  718.849413] kworker/0:2: page allocation failure: order:7, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+[  718.849504]  vmbus_alloc_ring+0x78/0xd0
+[  719.544679] WSL (3802 - Relay) ERROR: UtilAcceptVsock:281: accept4 failed 110
+[  751.453691] WSL (3820 - SessionLeader) ERROR: UtilAcceptVsock:281: accept4 failed 110
+[  751.455394] WSL (3820 - SessionLeader) ERROR: operator():1265: UtilAcceptVsock() failed for session leader 110
+[ 1218.788320] kworker/0:2: page allocation failure: order:7, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+[ 1218.788466]  vmbus_alloc_ring+0x78/0xd0
+[ 1249.403523] WSL (4128 - Relay) ERROR: UtilAcceptVsock:281: accept4 failed 110
+[ 1253.049336] kworker/0:2: page allocation failure: order:7, mode:0xdc0(GFP_KERNEL|__GFP_ZERO), nodemask=(null),cpuset=/,mems_allowed=0
+[ 1253.049555]  vmbus_alloc_ring+0x78/0xd0
+[ 1284.190659] WSL (4149 - Relay) ERROR: UtilAcceptVsock:281: accept4 failed 110
+[ 1374.280233] kubectl: page allocation failure: order:4, mode:0x40c40(GFP_NOFS|__GFP_COMP), nodemask=(null),cpuset=distro-109,mems_allowed=0

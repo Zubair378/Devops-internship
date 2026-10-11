@@ -2,6 +2,16 @@
 
 **Incomplete: the live end-to-end demo has not passed.**
 
+Latest recovery: after the user closed other applications, WSL's original 5 GB
+memory allowance was restored and the existing minikube container was given 4 GB.
+Kernel logs confirmed memory allocation failures in WSL communication channels
+under the earlier cap (see `runtime-memory.log`). Grafana now uses a startup
+probe, a 384 MiB limit, and one instance during upgrades. Monitoring Helm revision
+3 completed successfully; Grafana reached 3/3 Ready with zero restarts, and
+Prometheus and Alertmanager reached 2/2 Ready. Gateway and GitOps installation and
+end-to-end checks are still in progress. The older findings below describe the
+earlier blocked attempts.
+
 Verified:
 - Source commit `1d845a31b12f9ca4dc31a5d90e5650da08f2d649` was pushed.
 - GitHub Actions run [38113483248](https://github.com/Zubair378/Devops-internship/actions/runs/38113483248)

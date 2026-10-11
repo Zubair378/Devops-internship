@@ -32,7 +32,7 @@ def query(expression):
 
 def run(context, expected, rate_limit=False):
     def k(*args):
-        return subprocess.check_output(["kubectl", "--context", context, *args], text=True)
+        return subprocess.check_output(["kubectl", "--context", context, "--request-timeout=30s", *args], text=True)
 
     record = {"time_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "context": context, "expected_source_sha": expected, "checks": {}}
@@ -60,6 +60,9 @@ def run(context, expected, rate_limit=False):
         for pod in matching:
             containers = pod["status"]["containerStatuses"]
             assert all(c["ready"] for c in containers), pod["metadata"]["name"]
+            # Istio can run as a native sidecar (restartable init container).
+            sidecars = containers + pod["status"].get("initContainerStatuses", [])
+            assert any(c["name"] == "istio-proxy" and c["ready"] for c in sidecars), pod["metadata"]["name"]
             container = next(c for c in containers if c["name"] == service)
             assert container["image"].endswith(":" + expected), container["image"]
             assert container.get("imageID"), container
@@ -81,8 +84,12 @@ def run(context, expected, rate_limit=False):
         passed("kong_" + route, {"status": status, "response": payload})
     targets = query('up{job=~"backend-service|frontend-service"}')
     assert targets and all(float(row["value"][1]) == 1 for row in targets), targets
-    assert all(time.time() - float(row["value"][0]) < 45 for row in targets)
     assert {"backend-service", "frontend-service"} <= {r["metric"]["job"] for r in targets}
+    # An instant query's result timestamp is its evaluation time. Check the
+    # underlying scrape sample timestamp explicitly to detect stale targets.
+    samples = query('timestamp(up{job=~"backend-service|frontend-service"})')
+    assert len(samples) == len(targets), samples
+    assert all(0 <= time.time() - float(row["value"][1]) < 45 for row in samples), samples
     passed("application_scrape_targets_up", len(targets))
     traffic = query('sum by (service) (increase(devops_http_requests_total[2m]))')
     totals = {row["metric"]["service"]: float(row["value"][1]) for row in traffic}

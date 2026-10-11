@@ -42,9 +42,10 @@ controls request routing independently of that small replica count.
 ## Prerequisites
 
 - WSL2 Ubuntu with Docker Desktop running and Ubuntu integration enabled.
-- The local configuration uses a 3.5 GB WSL cap and a 3 GB minikube node to leave
-  Windows memory on this 8 GB laptop. Only one demo cluster should run at a time.
-  More available RAM is preferable for a full observability stack.
+- Allow WSL 5 GB and the minikube node 4 GB. The earlier 3.5 GB WSL cap caused
+  severe memory stalls and kernel allocation failures during live testing.
+  Close other large applications on this 8 GB laptop and run only one cluster
+  at a time. A host with more RAM is preferable for the full observability stack.
 - Docker, minikube, kubectl, Helm, Python 3, Git and OpenSSL on the WSL PATH.
 - Outbound access to GitHub, GHCR, the chart repositories and their image registries.
 - GitHub Actions enabled. Its workflow requires package write access to publish

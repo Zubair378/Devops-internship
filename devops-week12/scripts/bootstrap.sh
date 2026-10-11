@@ -12,9 +12,9 @@ if minikube status -p "$PROFILE" >/dev/null 2>&1; then
 elif minikube profile list -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(p["Name"] == sys.argv[1] for p in d.get("valid", [])) else 1)' "$PROFILE"; then
   minikube start -p "$PROFILE" --driver=docker
 else
-  minikube start -p "$PROFILE" --driver=docker --memory=3072 --cpus=3 --kubernetes-version=v1.35.1
+  minikube start -p "$PROFILE" --driver=docker --memory=4096 --cpus=3 --kubernetes-version=v1.35.1
 fi
-docker update --cpus=3 --memory=3g --memory-swap=5g "$PROFILE"
+docker update --cpus=3 --memory=4g --memory-swap=6g "$PROFILE"
 python3 "$ROOT/scripts/repair_registry_dns.py" --profile "$PROFILE"
 k() { kubectl --context "$PROFILE" "$@"; }
 k wait --for=condition=Ready node --all --timeout=180s

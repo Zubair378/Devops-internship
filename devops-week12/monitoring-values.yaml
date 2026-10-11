@@ -6,9 +6,18 @@ alertmanager:
       limits: {memory: 128Mi}
 grafana:
   defaultDashboardsEnabled: false
+  # One instance avoids duplicating Grafana's memory during a local upgrade.
+  deploymentStrategy: {type: Recreate}
+  progressDeadlineSeconds: 900
+  # Keep normal health checks, but allow plugin loading on the local demo host.
+  startupProbe:
+    httpGet: {path: /api/health, port: grafana}
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 60
   resources:
     requests: {cpu: 20m, memory: 64Mi}
-    limits: {memory: 256Mi}
+    limits: {memory: 384Mi}
   sidecar:
     dashboards:
       searchNamespace: ALL
