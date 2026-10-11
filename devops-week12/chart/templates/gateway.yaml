@@ -1,0 +1,51 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: week12-key-auth
+plugin: key-auth
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: week12-rate-limit
+plugin: rate-limiting
+config:
+  minute: {{ .Values.gateway.requestsPerMinute }}
+  policy: local
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: week12-demo
+username: week12-demo
+credentials: [week12-api-key]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  annotations:
+    konghq.com/plugins: week12-key-auth,week12-rate-limit
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port: {number: 5001}
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongClusterPlugin
+metadata:
+  name: week12-prometheus
+  labels: {global: "true"}
+  annotations: {kubernetes.io/ingress.class: kong}
+plugin: prometheus
+config:
+  status_code_metrics: true
+  latency_metrics: true
+  bandwidth_metrics: true

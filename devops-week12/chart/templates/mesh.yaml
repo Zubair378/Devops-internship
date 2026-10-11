@@ -1,0 +1,30 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: backend-routing
+spec:
+  hosts: [backend-service]
+  gateways: [mesh]
+  http:
+    - name: primary
+      route:
+        - destination: {host: backend-stable, port: {number: 5000}}
+          weight: 100
+        - destination: {host: backend-canary, port: {number: 5000}}
+          weight: 0
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default-strict
+spec:
+  mtls: {mode: STRICT}
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: frontend-gateway
+spec:
+  selector:
+    matchLabels: {app: frontend}
+  mtls: {mode: PERMISSIVE}

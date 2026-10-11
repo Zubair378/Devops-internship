@@ -1,0 +1,9 @@
+pilot:
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {memory: 256Mi}
+global:
+  proxy:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 500m, memory: 128Mi}

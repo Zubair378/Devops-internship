@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: week12-canary-health
+spec:
+  args:
+    - name: canary-hash
+  metrics:
+    - name: canary-success-with-traffic
+      interval: {{ .Values.canary.intervalSeconds }}s
+      count: {{ .Values.canary.measurements }}
+      successCondition: "len(result) == 1 && result[0] >= 0.95"
+      failureCondition: "len(result) != 1 || result[0] < 0.95"
+      failureLimit: 0
+      consecutiveErrorLimit: 1
+      provider:
+        prometheus:
+          address: {{ .Values.monitoring.prometheusUrl }}
+          query: |
+            (
+              (
+                sum(increase(devops_http_requests_total{service="backend",path="/info",revision="{{ "{{args.canary-hash}}" }}"}[1m]))
+                or on() vector(0)
+              ) >= bool {{ .Values.canary.minimumRequests }}
+            )
+            *
+            (
+              1 -
+              (sum(increase(devops_http_requests_total{service="backend",path="/info",revision="{{ "{{args.canary-hash}}" }}",status=~"5.."}[1m])) or on() vector(0))
+              /
+              clamp_min((sum(increase(devops_http_requests_total{service="backend",path="/info",revision="{{ "{{args.canary-hash}}" }}"}[1m])) or on() vector(0)), 1)
+            )

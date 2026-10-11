@@ -1,0 +1,27 @@
+{{- range $name := list "backend-service" "backend-stable" "backend-canary" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    app: backend
+    {{- if eq $name "backend-service" }}
+    week12-monitor: "true"
+    {{- end }}
+spec:
+  selector: {app: backend}
+  ports:
+    - {name: http, port: 5000, targetPort: http}
+    - {name: metrics, port: 8001, targetPort: metrics}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels: {app: frontend, week12-monitor: "true"}
+spec:
+  selector: {app: frontend}
+  ports:
+    - {name: http, port: 5001, targetPort: http}
+    - {name: metrics, port: 8001, targetPort: metrics}

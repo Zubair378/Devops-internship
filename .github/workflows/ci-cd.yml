@@ -3,8 +3,22 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci-cd.yml'
+      - 'devops-week12/tests/**'
+      - 'devops-week12/scripts/update_images.py'
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: delivery-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-test:
@@ -33,13 +47,16 @@ jobs:
           flake8 . --select=E9,F63,F7,F82
 
       - name: Run tests
+        env:
+          TEST_SERVICE: ${{ matrix.service }}
         run: |
           cd ${{ matrix.service }}
           pytest -v
+          pytest -v ../devops-week12/tests/test_services.py
 
   build-and-push:
     needs: lint-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -70,7 +87,42 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/dockerfile
           push: true
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.owner.outputs.owner }}/${{ matrix.service }}:latest
-            ghcr.io/${{ steps.owner.outputs.owner }}/${{ matrix.service }}:${{ steps.sha.outputs.short_sha }}
+            ghcr.io/${{ steps.owner.outputs.owner }}/${{ matrix.service }}:${{ github.sha }}
+
+  update-gitops:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Record the images ArgoCD must deploy
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if ! git diff --quiet "$SOURCE_SHA" origin/main -- backend frontend .github/workflows/ci-cd.yml; then
+              echo "Newer application code exists; this older build will not replace it."
+              exit 0
+            fi
+            git checkout -B main origin/main
+            python3 devops-week12/scripts/update_images.py "$SOURCE_SHA"
+            git add devops-week12/chart/values.yaml
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Deploy images from $SOURCE_SHA [skip ci]"
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          exit 1

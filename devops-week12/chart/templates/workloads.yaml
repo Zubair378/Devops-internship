@@ -1,0 +1,109 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "32Mi"
+        sidecar.istio.io/proxyMemoryLimit: "128Mi"
+        traffic.sidecar.istio.io/excludeInboundPorts: "8001"
+    spec:
+      containers:
+        - name: backend
+          image: "ghcr.io/{{ .Values.image.owner }}/backend:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - {name: http, containerPort: 5000}
+            - {name: metrics, containerPort: 8001}
+          env:
+            - name: POD_REVISION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['rollouts-pod-template-hash']
+            - name: DEMO_FAIL_INFO
+              value: {{ .Values.backend.failInfo | quote }}
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 15
+  strategy:
+    canary:
+      stableService: backend-stable
+      canaryService: backend-canary
+      maxSurge: 1
+      maxUnavailable: 0
+      scaleDownDelaySeconds: 20
+      abortScaleDownDelaySeconds: 20
+      trafficRouting:
+        istio:
+          virtualService:
+            name: backend-routing
+            routes: [primary]
+      steps:
+        - setWeight: 10
+        - pause: {duration: {{ .Values.canary.pauseSeconds }}s}
+        - analysis: &analysis
+            templates:
+              - templateName: week12-canary-health
+            args:
+              - name: canary-hash
+                valueFrom: {podTemplateHashValue: Latest}
+        - setWeight: 30
+        - pause: {duration: {{ .Values.canary.pauseSeconds }}s}
+        - analysis: *analysis
+        - setWeight: 60
+        - pause: {duration: {{ .Values.canary.pauseSeconds }}s}
+        - analysis: *analysis
+        - setWeight: 100
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels: {app: frontend}
+  template:
+    metadata:
+      labels: {app: frontend}
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "32Mi"
+        sidecar.istio.io/proxyMemoryLimit: "128Mi"
+        traffic.sidecar.istio.io/excludeInboundPorts: "8001"
+    spec:
+      containers:
+        - name: frontend
+          image: "ghcr.io/{{ .Values.image.owner }}/frontend:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - {name: http, containerPort: 5001}
+            - {name: metrics, containerPort: 8001}
+          env:
+            - {name: BACKEND_URL, value: "http://backend-service:5000"}
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            initialDelaySeconds: 15

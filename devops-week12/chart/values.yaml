@@ -1,0 +1,20 @@
+image:
+  owner: zubair378
+  tag: bootstrap
+  pullPolicy: IfNotPresent
+backend:
+  replicas: 2
+  failInfo: false
+frontend:
+  replicas: 1
+monitoring:
+  namespace: monitoring
+  release: monitoring
+  prometheusUrl: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+canary:
+  pauseSeconds: 60
+  intervalSeconds: 15
+  measurements: 3
+  minimumRequests: 5
+gateway:
+  requestsPerMinute: 120

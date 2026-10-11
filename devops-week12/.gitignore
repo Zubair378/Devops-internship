@@ -1,0 +1,8 @@
+.venv/
+.tools/
+.runtime/
+__pycache__/
+.pytest_cache/
+evidence/baseline-resources.yaml
+evidence/baseline-pods.json
+evidence/baseline-analysis.yaml

@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: microservices-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Zubair378/Devops-internship.git
+    targetRevision: main
+    path: devops-week12/chart
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  ignoreDifferences:
+    - group: networking.istio.io
+      kind: VirtualService
+      name: backend-routing
+      jqPathExpressions:
+        - .spec.http[].route[].weight
+    - group: ""
+      kind: Service
+      name: backend-stable
+      jsonPointers: [/spec/selector/rollouts-pod-template-hash]
+    - group: ""
+      kind: Service
+      name: backend-canary
+      jsonPointers: [/spec/selector/rollouts-pod-template-hash]
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true, RespectIgnoreDifferences=true]

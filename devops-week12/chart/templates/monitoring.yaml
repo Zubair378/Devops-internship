@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: week12-microservices
+  labels: {release: {{ .Values.monitoring.release }}}
+spec:
+  selector:
+    matchLabels: {week12-monitor: "true"}
+  endpoints:
+    - port: metrics
+      interval: 10s
+      scrapeTimeout: 5s
+      honorLabels: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: week12-application-alerts
+  labels: {release: {{ .Values.monitoring.release }}}
+spec:
+  groups:
+    - name: week12
+      rules:
+        - alert: Week12MetricsMissing
+          expr: absent(up{job=~"backend-service|frontend-service"}) or up{job=~"backend-service|frontend-service"} == 0
+          for: 2m
+          labels: {severity: critical}
+          annotations:
+            summary: Application scrape target is missing or unreachable
+        - alert: Week12BackendErrorRate
+          expr: (sum(rate(devops_http_requests_total{service="backend",status=~"5.."}[1m])) / clamp_min(sum(rate(devops_http_requests_total{service="backend"}[1m])), 0.001)) > 0.05
+          for: 1m
+          labels: {severity: warning}
+          annotations:
+            summary: Backend application errors exceed five percent

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: week12-grafana-dashboard
+  labels: {grafana_dashboard: "1"}
+data:
+  final-demo.json: |
+{{ .Files.Get "dashboards/final-demo.json" | indent 4 }}

@@ -1,0 +1,20 @@
+env:
+  database: "off"
+  nginx_worker_processes: "1"
+  proxy_access_log: "off"
+  admin_access_log: "off"
+proxy:
+  type: ClusterIP
+  tls: {enabled: false}
+resources:
+  requests: {cpu: 50m, memory: 96Mi}
+  limits: {memory: 256Mi}
+ingressController:
+  enabled: true
+  installCRDs: true
+  resources:
+    requests: {cpu: 20m, memory: 48Mi}
+    limits: {memory: 192Mi}
+serviceMonitor:
+  enabled: true
+  labels: {release: monitoring}

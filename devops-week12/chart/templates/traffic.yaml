@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-traffic
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels: {app: demo-traffic}
+  template:
+    metadata:
+      labels: {app: demo-traffic}
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "32Mi"
+        sidecar.istio.io/proxyMemoryLimit: "128Mi"
+    spec:
+      containers:
+        - name: traffic
+          image: "ghcr.io/{{ .Values.image.owner }}/frontend:{{ .Values.image.tag }}"
+          command: [python, -u, -c]
+          args:
+            - |
+              import time, urllib.request
+              count = 0
+              while True:
+                  try:
+                      with urllib.request.urlopen("http://frontend-service:5001/backend", timeout=3) as response:
+                          status = response.status
+                  except Exception as error:
+                      status = getattr(error, "code", "unreachable")
+                  count += 1
+                  if count % 50 == 0:
+                      print("requests:", count, "last status:", status, flush=True)
+                  time.sleep(0.2)
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
