@@ -5,6 +5,7 @@ alertmanager:
       requests: {cpu: 10m, memory: 32Mi}
       limits: {memory: 128Mi}
 grafana:
+  replicas: 1
   defaultDashboardsEnabled: false
   # One instance avoids duplicating Grafana's memory during a local upgrade.
   deploymentStrategy: {type: Recreate}
@@ -17,25 +18,33 @@ grafana:
     failureThreshold: 60
   resources:
     requests: {cpu: 20m, memory: 64Mi}
-    limits: {memory: 384Mi}
+    limits: {memory: 512Mi}
+  grafana.ini:
+    unified_alerting:
+      enabled: false
   sidecar:
+    resources:
+      requests: {cpu: 5m, memory: 32Mi}
+      limits: {memory: 128Mi}
     dashboards:
       searchNamespace: ALL
-      resources:
-        requests: {cpu: 5m, memory: 32Mi}
-        limits: {memory: 96Mi}
     datasources:
-      resources:
-        requests: {cpu: 5m, memory: 32Mi}
-        limits: {memory: 96Mi}
+      enabled: false
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          uid: prometheus
+          type: prometheus
+          access: proxy
+          url: http://monitoring-kube-prometheus-prometheus.monitoring.svc:9090
+          isDefault: true
+          editable: false
 nodeExporter:
   enabled: false
 kubeStateMetrics:
-  enabled: true
-kube-state-metrics:
-  resources:
-    requests: {cpu: 10m, memory: 32Mi}
-    limits: {memory: 96Mi}
+  enabled: false
 prometheusOperator:
   resources:
     requests: {cpu: 20m, memory: 48Mi}
@@ -57,3 +66,8 @@ kubeControllerManager: {enabled: false}
 kubeScheduler: {enabled: false}
 kubeEtcd: {enabled: false}
 kubeProxy: {enabled: false}
+defaultRules: {create: false}
+kubelet: {enabled: false}
+kubeApiServer: {enabled: false}
+coreDns: {enabled: false}
+kubeDns: {enabled: false}

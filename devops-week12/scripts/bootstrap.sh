@@ -12,9 +12,9 @@ if minikube status -p "$PROFILE" >/dev/null 2>&1; then
 elif minikube profile list -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if any(p["Name"] == sys.argv[1] for p in d.get("valid", [])) else 1)' "$PROFILE"; then
   minikube start -p "$PROFILE" --driver=docker
 else
-  minikube start -p "$PROFILE" --driver=docker --memory=4096 --cpus=3 --kubernetes-version=v1.35.1
+  minikube start -p "$PROFILE" --driver=docker --memory=4096 --cpus=4 --kubernetes-version=v1.35.1
 fi
-docker update --cpus=3 --memory=4g --memory-swap=6g "$PROFILE"
+docker update --cpus=4 --memory=4096m --memory-swap=6144m "$PROFILE"
 python3 "$ROOT/scripts/repair_registry_dns.py" --profile "$PROFILE"
 k() { kubectl --context "$PROFILE" "$@"; }
 k wait --for=condition=Ready node --all --timeout=180s
@@ -37,7 +37,7 @@ k -n argo-rollouts rollout status deployment/argo-rollouts --timeout=180s
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 92.3.0 -n monitoring --create-namespace -f "$ROOT/monitoring-values.yaml" --wait --timeout 15m
 python3 "$ROOT/scripts/adopt_kong_crds.py" --context "$PROFILE" --apply
 helm upgrade --install kong kong/kong --version 3.4.1 -n kong --create-namespace -f "$ROOT/kong-values.yaml" --wait --timeout 10m
-helm upgrade --install argocd argo/argo-cd --version 10.10.2 -n argocd --create-namespace -f "$ROOT/argocd-values.yaml" --wait --timeout 10m
+helm upgrade --install argocd argo/argo-cd --version 10.10.2 -n argocd --create-namespace -f "$ROOT/argocd-values.yaml" --wait --timeout 15m
 if ! k -n default get secret week12-api-key >/dev/null 2>&1; then
   python3 -c 'import json,secrets; print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"week12-api-key","namespace":"default","labels":{"konghq.com/credential":"key-auth"}},"type":"Opaque","stringData":{"key":secrets.token_hex(24)}}))' | k apply -f -
 fi

@@ -2,8 +2,6 @@
 import argparse
 import ipaddress
 import json
-import socket
-import ssl
 import subprocess
 import urllib.request
 
@@ -24,21 +22,28 @@ def reachable(address, profile):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", default="devops-week2")
-    profile = parser.parse_args().profile
+    parser.add_argument("--refresh", action="store_true",
+                        help="Refresh the CDN route after a failed blob download")
+    args = parser.parse_args()
+    profile = args.profile
     info = json.loads(subprocess.check_output(["docker", "inspect", profile], text=True))[0]
     if info["Config"].get("Labels", {}).get("created_by.minikube.sigs.k8s.io") != "true":
         raise SystemExit("Refusing to modify a container that is not a minikube node")
     result = subprocess.run(["docker", "exec", profile, "getent", "ahostsv4", HOST],
                             text=True, capture_output=True)
     addresses = list(dict.fromkeys(line.split()[0] for line in result.stdout.splitlines()))
-    if any(reachable(address, profile) for address in addresses[:3]):
+    if not args.refresh and addresses and all(reachable(address, profile) for address in addresses):
         print("Quay CDN route is reachable")
         return
-    request = urllib.request.Request(
-        "https://cloudflare-dns.com/dns-query?name=" + HOST + "&type=A",
-        headers={"Accept": "application/dns-json"})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        answers = json.load(response).get("Answer", [])
+    answers = []
+    for resolver in ("https://cloudflare-dns.com/dns-query", "https://dns.google/resolve"):
+        request = urllib.request.Request(resolver + "?name=" + HOST + "&type=A",
+                                         headers={"Accept": "application/dns-json"})
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                answers.extend(json.load(response).get("Answer", []))
+        except (OSError, ValueError) as error:
+            print("Resolver unavailable:", resolver, type(error).__name__)
     for answer in answers:
         if answer["type"] != 1:
             continue

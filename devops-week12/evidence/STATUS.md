@@ -1,58 +1,18 @@
-# Verification status — 12 October 2026
+# Week 12 verification status — 12 October 2026
 
-**Incomplete: the live end-to-end demo has not passed.**
+**The final live end-to-end demo is not verified.** The application and infrastructure were deployed far enough to show GitOps reconciliation and running pods, but the local Docker/WSL runtime failed before canary promotion, gateway, Prometheus, and Grafana checks could complete. Do not present these checks as passed.
 
-Latest recovery: after the user closed other applications, WSL's original 5 GB
-memory allowance was restored and the existing minikube container was given 4 GB.
-Kernel logs confirmed memory allocation failures in WSL communication channels
-under the earlier cap (see `runtime-memory.log`). Grafana now uses a startup
-probe, a 384 MiB limit, and one instance during upgrades. Monitoring Helm revision
-3 completed successfully; Grafana reached 3/3 Ready with zero restarts, and
-Prometheus and Alertmanager reached 2/2 Ready. Gateway and GitOps installation and
-end-to-end checks are still in progress. The older findings below describe the
-earlier blocked attempts.
+## Verified results
 
-Verified:
-- Source commit `1d845a31b12f9ca4dc31a5d90e5650da08f2d649` was pushed.
-- GitHub Actions run [38113483248](https://github.com/Zubair378/Devops-internship/actions/runs/38113483248)
-  completed all five test/build/GitOps jobs successfully.
-- The bot updated the deployment image tag in commit `e291f89`.
-- Local Week 12 tests: six passed, two intentional service-specific skips.
-- Helm chart lint, bootstrap shell syntax, and Git whitespace checks passed.
-- Documentation and recovery tools commit `95b1820` was pushed using the existing
-  Windows Git Credential Manager sign-in after the WSL stored credential failed.
+- Source commit `6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e` was pushed. [GitHub Actions run 38192657087](https://github.com/Zubair378/Devops-internship/actions/runs/38192657087) completed all five test, build, and image-update jobs successfully in 56 seconds. The bot committed the image-tag update as `c69155dd6218854e9ef1f2eed96af2f14814081a`.
+- Local Week 12 tests passed (six passed, two intentional service-specific skips), and the final Helm chart lint passed. Actual terminal and CI browser screenshots are in `screenshots/`.
+- ArgoCD synced the `microservices-app` Application to the image-update commit and reported its sync operation succeeded. The new frontend, backend candidate, and demo-traffic pods were each observed with both containers running. Kong was observed with both containers ready and zero restarts. These were point-in-time observations, not a completed end-to-end validation.
+- The Quay CDN route was repaired and its certificate was verified from the node. The ArgoCD image pulled successfully. Prometheus and Alertmanager were observed with both containers running before the later cluster failure.
 
-Live findings:
-- The existing cluster initially lacked ArgoCD, Kong and monitoring components.
-- Kubernetes and Istio were recovered; monitoring installation remained incomplete.
-- The original Quay CDN DNS route timed out. The repair script now resolves and
-  verifies the CDN certificate from inside the actual minikube node. A full
-  Prometheus Operator image pull succeeded, and Prometheus and Alertmanager pods
-  subsequently reached Running.
-- The repeatable bootstrap still times out while upgrading the Istio base CRDs:
-  the Kubernetes API did not respond before the Helm timeout. A subsequent run
-  also ended with Docker API/WSL connection timeouts. ArgoCD and Kong were not
-  installed, the dashboard was not ready, and the final application was not
-  deployed or verified.
-- WSL was limited to 3500 MB, automatic cache reclaim enabled, and its CPU count
-  restored to the original four. The prior settings are backed up at
-  `C:\Users\TARIQ COMPUTER\.wslconfig.week12-backup`.
-- The root cause of the slow Kubernetes API and repeated Docker/WSL timeouts is
-  still unresolved. No cluster/profile, application data, or unrelated user
-  files were deleted. The local source and test environment are saved.
+## Blocker and remaining checks
 
-Still required before calling this demo complete:
-1. Recover a stable Docker/WSL runtime (restart Windows after saving open work).
-2. Run `bash devops-week12/scripts/bootstrap.sh` and finish infrastructure setup.
-3. Verify ArgoCD automatic reconciliation and full-SHA images running in all pods.
-4. Verify Kong authentication/routing/rate limit and frontend-to-backend calls.
-5. Verify fresh Prometheus targets and real data in all Grafana dashboard panels.
-6. Exercise successful canary promotion and metric-driven failure/rollback.
-7. Recreate the platform in a separate profile and verify it from scratch.
-8. Capture the live ArgoCD, gateway, Prometheus and Grafana screens.
+The existing minikube node exited with Docker exit code 255. Restarting the node brought up kubelet and etcd, but minikube timed out after three minutes because the Kubernetes API server could not answer health checks. Its log showed repeated etcd request deadlines. During the attempt, Docker's Ubuntu socket disappeared; Windows Docker remained responsive. Ubuntu was restarted, then Docker Desktop restart was requested. The final live state must be rechecked before a demo.
 
-No `verification.json` success report has been generated. The screenshots show
-CI and local checks only; they do not show a successful live deployment.
+Still unverified: completed metric-gated canary promotion and rollback, authenticated Kong response and rate limiting, live Prometheus series, Grafana dashboard panel data, the `verify.py` all-pass report, and a second empty-cluster reproduction. No live-success screenshot or `verification.json` is claimed.
 
-The exit survey needs the student's own feedback. The supplied assignment screen
-shows the submission window locked; this must be handled with the course provider.
+The assignment screenshot says the submission window is locked. The exit survey needs the student's own feedback; a technical deployment cannot submit it or reopen the window.

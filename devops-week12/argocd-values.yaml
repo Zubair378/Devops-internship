@@ -3,7 +3,7 @@ dex:
 notifications:
   enabled: false
 applicationSet:
-  enabled: false
+  replicas: 0
 configs:
   params:
     server.insecure: true
@@ -16,6 +16,12 @@ repoServer:
     requests: {cpu: 20m, memory: 64Mi}
     limits: {memory: 256Mi}
 server:
+  startupProbe:
+    enabled: true
+    failureThreshold: 30
+    timeoutSeconds: 5
+  livenessProbe:
+    timeoutSeconds: 5
   resources:
     requests: {cpu: 20m, memory: 48Mi}
     limits: {memory: 192Mi}

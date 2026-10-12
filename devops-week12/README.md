@@ -4,10 +4,7 @@ This directory contains the final integrated version of the internship project.
 Earlier week directories remain as historical exercises. Use this guide for the
 final deployment; do not apply the older standalone rollout and chart over it.
 
-**Live validation is incomplete.** CI and local checks pass, but Docker/WSL timeouts
-during cluster reconciliation blocked the full deployment. Read the [verification status](evidence/STATUS.md)
-for completed checks, actual evidence, and the remaining work. This is not yet a
-verified final demo.
+**Live validation is incomplete.** CI, local checks, ArgoCD sync and several running workloads were observed, but the Docker/WSL runtime failed before final canary, gateway and dashboard verification. Read the [verification status](evidence/STATUS.md) for precise results and remaining checks.
 
 ## Architecture
 
@@ -42,7 +39,7 @@ controls request routing independently of that small replica count.
 ## Prerequisites
 
 - WSL2 Ubuntu with Docker Desktop running and Ubuntu integration enabled.
-- Allow WSL 5 GB and the minikube node 4 GB. The earlier 3.5 GB WSL cap caused
+- Allow WSL 5 GB / four CPUs and the minikube node 4 GB / four CPUs. The earlier 3.5 GB WSL cap caused
   severe memory stalls and kernel allocation failures during live testing.
   Close other large applications on this 8 GB laptop and run only one cluster
   at a time. A host with more RAM is preferable for the full observability stack.

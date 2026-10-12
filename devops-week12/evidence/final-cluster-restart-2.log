@@ -1,0 +1,14 @@
+😄  [devops-week2] minikube v1.38.1 on Ubuntu 24.04 (amd64)
+✨  Using the docker driver based on existing profile
+
+🧯  The requested memory allocation of 4096MiB does not leave room for system overhead (total system memory: 4921MiB). You may face stability issues.
+💡  Suggestion: Start minikube with less memory allocated: 'minikube start --memory=4096mb'
+
+
+🧯  The requested memory allocation of 4096MiB does not leave room for system overhead (total system memory: 4921MiB). You may face stability issues.
+💡  Suggestion: Start minikube with less memory allocated: 'minikube start --memory=4096mb'
+
+❗  You cannot change the memory size for an existing minikube cluster. Please first delete the cluster.
+❗  You cannot change the CPUs for an existing minikube cluster. Please first delete the cluster.
+👍  Starting "devops-week2" primary control-plane node in "devops-week2" cluster
+🚜  Pulling base image v0.0.50 ...

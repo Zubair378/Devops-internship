@@ -1,0 +1,39 @@
+{
+  "url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087",
+  "source_sha": "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e",
+  "status": "completed",
+  "id": 38192657087,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "lint-and-test (frontend)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087/job/114628541641"
+    },
+    {
+      "name": "lint-and-test (backend)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087/job/114628541761"
+    },
+    {
+      "name": "build-and-push (backend)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087/job/114628589375"
+    },
+    {
+      "name": "build-and-push (frontend)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087/job/114628589387"
+    },
+    {
+      "name": "update-gitops",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Zubair378/Devops-internship/actions/runs/38192657087/job/114628684604"
+    }
+  ]
+}
