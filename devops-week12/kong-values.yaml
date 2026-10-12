@@ -3,6 +3,14 @@ env:
   nginx_worker_processes: "1"
   proxy_access_log: "off"
   admin_access_log: "off"
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
+startupProbe:
+  httpGet: {path: /status, port: status}
+  periodSeconds: 5
+  timeoutSeconds: 10
+  failureThreshold: 60
 proxy:
   type: ClusterIP
   tls: {enabled: false}
@@ -12,6 +20,12 @@ resources:
 ingressController:
   enabled: true
   installCRDs: true
+  # This chart exposes a startup probe for the proxy only. Let the controller
+  # wait for the local proxy to initialize before liveness can restart it.
+  livenessProbe:
+    initialDelaySeconds: 240
+    timeoutSeconds: 10
+    failureThreshold: 6
   resources:
     requests: {cpu: 20m, memory: 48Mi}
     limits: {memory: 192Mi}

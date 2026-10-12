@@ -1,0 +1,19 @@
+Release "kong" has been upgraded. Happy Helming!
+NAME: kong
+LAST DEPLOYED: Mon Oct 12 02:09:40 2026
+NAMESPACE: kong
+STATUS: deployed
+REVISION: 3
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+NOTES:
+To connect to Kong, please execute the following commands:
+export PROXY_IP=${HOST}:${PORT}
+curl $PROXY_IP
+
+Once installed, please follow along the getting started guide to start using
+Kong: https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/getting-started/
+
+WARNING: Kong Manager will not be functional because the Admin API is not
+enabled. Setting both .admin.enabled and .admin.http.enabled and/or
+.admin.tls.enabled to true to enable the Admin API over HTTP/TLS.
