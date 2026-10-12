@@ -1,6 +1,6 @@
 image:
   owner: zubair378
-  tag: "1d845a31b12f9ca4dc31a5d90e5650da08f2d649"
+  tag: "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e"
   pullPolicy: IfNotPresent
 backend:
   replicas: 2
