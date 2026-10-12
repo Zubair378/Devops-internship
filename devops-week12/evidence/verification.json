@@ -1,0 +1,63 @@
+{
+  "time_utc": "2026-10-12T16:45:08.678545+00:00",
+  "context": "devops-week2",
+  "expected_source_sha": "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e",
+  "checks": {
+    "nodes_ready": [
+      "devops-week2"
+    ],
+    "argocd_synced_healthy": "c69155dd6218854e9ef1f2eed96af2f14814081a",
+    "rollout_healthy": "684b8cb8c4",
+    "expected_images_ready": {
+      "backend-rollout-684b8cb8c4-nckns": "docker-pullable://ghcr.io/zubair378/backend@sha256:c7daf53954785475d64007f2f1ba9ae25823b64c84115e9ad8616781e7f00eda",
+      "backend-rollout-684b8cb8c4-xt8xd": "docker-pullable://ghcr.io/zubair378/backend@sha256:c7daf53954785475d64007f2f1ba9ae25823b64c84115e9ad8616781e7f00eda",
+      "frontend-deployment-5b797fdc95-mrp8f": "docker-pullable://ghcr.io/zubair378/frontend@sha256:f1bff1da70b811ee96074c72afe95a88e7f4847074f40c2c2ce33789a5997b1b"
+    },
+    "kong_rejects_missing_key": 401,
+    "kong_info": {
+      "status": 200,
+      "response": {
+        "developer": "Zubair",
+        "hostname": "frontend-deployment-5b797fdc95-mrp8f",
+        "revision": "local",
+        "service": "frontend",
+        "version": "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e"
+      }
+    },
+    "kong_backend": {
+      "status": 200,
+      "response": {
+        "backend": {
+          "developer": "Zubair",
+          "hostname": "backend-rollout-684b8cb8c4-xt8xd",
+          "revision": "684b8cb8c4",
+          "service": "backend",
+          "version": "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e"
+        },
+        "frontend": "6ab6abb6f0a2b19fc15a40b9f7d23197f7d5738e"
+      }
+    },
+    "application_scrape_targets_up": 3,
+    "real_application_requests": {
+      "backend": 534.6621279838869,
+      "frontend": 534.662108096312
+    },
+    "kong_metrics_present": "2",
+    "grafana_database_healthy": "13.2.3",
+    "grafana_dashboard_provisioned": "DevOps Week 12 \u2014 Final Demo",
+    "grafana_dashboard_loaded": "DevOps Week 12 \u2014 Final Demo",
+    "all_grafana_panels_have_live_data": {
+      "Application request rate": 2,
+      "Application errors (%)": 2,
+      "Application p95 latency": 2,
+      "Application scrape targets": 3,
+      "Backend revisions (requests/sec)": 1,
+      "Kong responses by HTTP status": 1
+    },
+    "kong_rate_limit": {
+      "200": 118,
+      "429": 7
+    }
+  },
+  "result": "PASS"
+}

@@ -4,7 +4,7 @@ This directory contains the final integrated version of the internship project.
 Earlier week directories remain as historical exercises. Use this guide for the
 final deployment; do not apply the older standalone rollout and chart over it.
 
-**Live validation is incomplete.** CI, local checks, ArgoCD sync and several running workloads were observed, but the Docker/WSL runtime failed before final canary, gateway and dashboard verification. Read the [verification status](evidence/STATUS.md) for precise results and remaining checks.
+**Live end-to-end verification passed on the existing cluster.** CI, ArgoCD sync, canary promotion, Kong routing and rate limiting, Prometheus metrics, and all six Grafana panel queries passed. Read the [verification status](evidence/STATUS.md) and [machine-readable result](evidence/verification.json). A separate empty-cluster rebuild and deliberate rollback test remain untested on this 8 GB host.
 
 ## Architecture
 
@@ -217,6 +217,13 @@ location. All new implementation files are in Week 12.
 ## Troubleshooting
 
 - Docker unavailable in WSL: start Docker Desktop and check Ubuntu integration.
+  If `/var/run/docker.sock` is missing but Docker works in Windows, Week 12
+  bootstrap uses Docker Desktop's shared socket automatically. If it reports a
+  permission error, run this in PowerShell, then retry bootstrap:
+  `wsl.exe -d Ubuntu -u root -- chgrp docker /mnt/wsl/docker-desktop/shared-sockets/host-services/docker.proxy.sock`
+- If WSL time differs from Windows by more than a minute, correct the clock
+  before Kubernetes authentication checks. On this host, `systemd-timesyncd`
+  was disabled after it repeatedly shifted WSL ahead of Windows.
 - Quay image downloads timing out: bootstrap checks `cdn01.quay.io`, and if its
   current DNS route is unreachable, resolves it using Cloudflare DNS over HTTPS.
   It verifies TLS for the original hostname before updating only the selected

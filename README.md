@@ -4,8 +4,7 @@ Use the [Week 12 setup and demo guide](devops-week12/README.md) for the
 CI → GHCR → ArgoCD → Istio/Kong → Prometheus → Grafana implementation.
 It includes the architecture, pinned infrastructure and verification commands.
 
-**Live verification is incomplete due to Docker/WSL timeouts during cluster setup.**
-CI and local tests pass. Read the [actual verification status and remaining work](devops-week12/evidence/STATUS.md)
+CI, local tests, and live end-to-end checks pass. Read the [verification status and limits](devops-week12/evidence/STATUS.md)
 and [saved screenshots](devops-week12/evidence/screenshots).
 
 The historical exercises below preserve earlier observations. Their standalone
@@ -1718,4 +1717,3 @@ For complete details on the formal incident escalation path, metric queries, fai
 * **Granular Traffic Control:** Established an automated canary progression starting at 10% traffic weight, advancing through 30%, 60%, and 100% thresholds.
 * **Integrated Observability:** Reused Week 9 Prometheus monitoring infrastructure as the automated gatekeeper for release quality.
 * **Zero-Downtime Automated Resilience:** Confirmed that faulty releases trigger instant automated rollback, safeguarding user traffic with zero manual intervention required.
-

@@ -2,6 +2,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROFILE="${PROFILE:-devops-week2}"
+if [[ ! -S /var/run/docker.sock && -S /mnt/wsl/docker-desktop/shared-sockets/host-services/docker.proxy.sock ]]; then
+  export DOCKER_HOST=unix:///mnt/wsl/docker-desktop/shared-sockets/host-services/docker.proxy.sock
+fi
 export HELM_KUBECONTEXT="$PROFILE"
 for tool in docker minikube kubectl helm python3 openssl; do
   command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool"; exit 1; }
@@ -30,7 +33,7 @@ else
 fi
 helm upgrade --install istiod istio/istiod --version 1.30.5 -n istio-system -f "$ROOT/istio-values.yaml" --wait --timeout 10m
 k label namespace default istio-injection=enabled --overwrite
-k create namespace argo-rollouts --dry-run=client -o yaml | k apply -f -
+k create namespace argo-rollouts --dry-run=client -o yaml | k create -f -
 k apply --server-side -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.10.0/install.yaml
 k -n argo-rollouts patch deployment argo-rollouts --patch-file "$ROOT/rollouts-patch.yaml"
 k -n argo-rollouts rollout status deployment/argo-rollouts --timeout=180s
@@ -39,7 +42,7 @@ python3 "$ROOT/scripts/adopt_kong_crds.py" --context "$PROFILE" --apply
 helm upgrade --install kong kong/kong --version 3.4.1 -n kong --create-namespace -f "$ROOT/kong-values.yaml" --wait --timeout 10m
 helm upgrade --install argocd argo/argo-cd --version 10.10.2 -n argocd --create-namespace -f "$ROOT/argocd-values.yaml" --wait --timeout 15m
 if ! k -n default get secret week12-api-key >/dev/null 2>&1; then
-  python3 -c 'import json,secrets; print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"week12-api-key","namespace":"default","labels":{"konghq.com/credential":"key-auth"}},"type":"Opaque","stringData":{"key":secrets.token_hex(24)}}))' | k apply -f -
+  python3 -c 'import json,secrets; print(json.dumps({"apiVersion":"v1","kind":"Secret","metadata":{"name":"week12-api-key","namespace":"default","labels":{"konghq.com/credential":"key-auth"}},"type":"Opaque","stringData":{"key":secrets.token_hex(24)}}))' | k create -f -
 fi
 if [[ "${1:-}" != "--infra-only" ]]; then
   if grep -q 'tag: bootstrap' "$ROOT/chart/values.yaml"; then

@@ -17,6 +17,7 @@ apiVersion: configuration.konghq.com/v1
 kind: KongConsumer
 metadata:
   name: week12-demo
+  annotations: {kubernetes.io/ingress.class: kong}
 username: week12-demo
 credentials: [week12-api-key]
 ---

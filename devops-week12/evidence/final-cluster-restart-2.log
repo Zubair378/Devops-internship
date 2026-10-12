@@ -12,3 +12,7 @@
 ❗  You cannot change the CPUs for an existing minikube cluster. Please first delete the cluster.
 👍  Starting "devops-week2" primary control-plane node in "devops-week2" cluster
 🚜  Pulling base image v0.0.50 ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+🏄  Done! kubectl is now configured to use "devops-week2" cluster and "default" namespace by default
