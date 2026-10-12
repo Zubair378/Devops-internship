@@ -123,6 +123,9 @@ and the frontend-only case for the backend.
 
 ## Open the demo
 
+For the exact browser output and a short presentation walkthrough, see
+[DEMO-README.md](DEMO-README.md).
+
 ```bash
 python3 devops-week12/scripts/start_demo.py
 ```
