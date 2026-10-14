@@ -30,9 +30,9 @@ spec:
                   except Exception as error:
                       status = getattr(error, "code", "unreachable")
                   count += 1
-                  if count % 50 == 0:
+                  if count % 10 == 0:
                       print("requests:", count, "last status:", status, flush=True)
-                  time.sleep(0.2)
+                  time.sleep(5)
           resources:
             requests: {cpu: 5m, memory: 16Mi}
             limits: {cpu: 100m, memory: 64Mi}
