@@ -1717,3 +1717,35 @@ For complete details on the formal incident escalation path, metric queries, fai
 * **Granular Traffic Control:** Established an automated canary progression starting at 10% traffic weight, advancing through 30%, 60%, and 100% thresholds.
 * **Integrated Observability:** Reused Week 9 Prometheus monitoring infrastructure as the automated gatekeeper for release quality.
 * **Zero-Downtime Automated Resilience:** Confirmed that faulty releases trigger instant automated rollback, safeguarding user traffic with zero manual intervention required.
+
+<img width="1600" height="1000" alt="07-grafana-final-dashboard" src="https://github.com/user-attachments/assets/41d56ad0-8250-4d1b-bce9-5d34d639e9fd" />
+
+
+<img width="1920" height="1080" alt="08-final-live-terminal" src="https://github.com/user-attachments/assets/d275ff23-0d19-4523-9c28-52c3952346d1" />
+
+
+<img width="1280" height="720" alt="live-01-repository" src="https://github.com/user-attachments/assets/6cab61eb-c076-43a2-acf7-214805755842" />
+
+
+<img width="1280" height="720" alt="live-02-ci-success" src="https://github.com/user-attachments/assets/900c6b85-7522-470b-b745-02d4cf0cc55f" />
+
+
+
+<img width="1280" height="720" alt="live-03-argocd-synced" src="https://github.com/user-attachments/assets/116b57ca-8748-4c1a-823c-868971e4aae3" />
+
+
+<img width="1280" height="720" alt="live-04-kong-unauthorized" src="https://github.com/user-attachments/assets/471e4684-32df-4c56-9458-f699ab251b75" />
+
+
+<img width="1280" height="720" alt="live-05-kong-authorized" src="https://github.com/user-attachments/assets/c853f922-a708-48c6-9213-577185d32ed8" />
+
+
+
+
+
+
+
+
+
+
+
